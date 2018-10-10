@@ -3,16 +3,16 @@ project(ros2_videostreamer)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
+	set(CMAKE_C_STANDARD 99)
 endif()
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+	set(CMAKE_CXX_STANDARD 14)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -O2) #-Wpedantic
+	add_compile_options(-Wall -Wextra -O2) #-Wpedantic
 endif()
 
 #####################
@@ -48,25 +48,25 @@ function(custome_executable subfolder target addition)
 							 ${ARGV3}
 							 ${ARGV4}
 							 #${ARGV5}
-				)
+	)
 	target_link_libraries(${target}
 		${Boost_LIBRARY_DIRS}/libboost_system.so 
 		${GSTREAMER_LIBRARIES} 
 		${OpenCV_LIBS}
 		pthread
 	)
-  ament_target_dependencies(${target}
-    "rclcpp"
-    "rcl"
-    "rclcpp"
-    "class_loader"
-    "std_msgs"
-    "sensor_msgs"
-    "geometry_msgs"  
-    "perception_msgs" 
- )
-  install(TARGETS ${target}
-  DESTINATION lib/${PROJECT_NAME})
+	ament_target_dependencies(${target}
+		"rclcpp"
+		"rcl"
+		"rclcpp"
+		"class_loader"
+		"std_msgs"
+		"sensor_msgs"
+		"geometry_msgs"  
+		"perception_msgs" 
+	)
+	install(TARGETS ${target}
+	DESTINATION lib/${PROJECT_NAME})
 endfunction()
 
 ######################
@@ -92,14 +92,14 @@ custome_executable(receiver rtsp_node ${RTSP_ADDITION})
 # set test #
 ############
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # remove the line when a copyright and license is present in all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # remove the line when this package is a git repo
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+	find_package(ament_lint_auto REQUIRED)
+	# the following line skips the linter which checks for copyrights
+	# remove the line when a copyright and license is present in all source files
+	set(ament_cmake_copyright_FOUND TRUE)
+	# the following line skips cpplint (only works in a git repo)
+	# remove the line when this package is a git repo
+	set(ament_cmake_cpplint_FOUND TRUE)
+	ament_lint_auto_find_test_dependencies()
 endif()
 
 ament_package()

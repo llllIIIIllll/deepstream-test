@@ -1,5 +1,6 @@
 #include "rtsp_receiver/RtspReceiver.hpp"
 
+
 // TODO: delete unnecessary component
 /// Convert an OpenCV matrix encoding type to a string format recognized by sensor_msgs::Image.
 /**
@@ -9,18 +10,14 @@
 std::string
 mat_type2encoding(int mat_type)
 {
-  switch (mat_type) {
-    case CV_8UC1:
-      return "mono8";
-    case CV_8UC3:
-      return "bgr8";
-    case CV_16SC1:
-      return "mono16";
-    case CV_8UC4:
-      return "rgba8";
-    default:
-      throw std::runtime_error("Unsupported encoding type");
-  }
+    switch (mat_type) 
+	{
+        case CV_8UC1 : return "mono8";
+        case CV_8UC3 : return "bgr8";
+        case CV_16SC1: return "mono16";
+        case CV_8UC4 : return "rgba8";
+        default      : throw std::runtime_error("Unsupported encoding type");
+  	}
 }
 
 /// Convert an OpenCV matrix (cv::Mat) to a ROS Image message.
@@ -32,15 +29,16 @@ mat_type2encoding(int mat_type)
 void convert_frame_to_message(
   const cv::Mat & frame, size_t frame_id, sensor_msgs::msg::Image::SharedPtr msg)
 {
-  // copy cv information into ros message
-  msg->height = frame.rows;
-  msg->width = frame.cols;
-  msg->encoding = mat_type2encoding(frame.type());
-  msg->step = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
-  size_t size = frame.step * frame.rows;
-  msg->data.resize(size);
-  memcpy(&msg->data[0], frame.data, size);
-  msg->header.frame_id = std::to_string(frame_id);
+  	// copy cv information into ros message
+	msg->height          = frame.rows;
+	msg->width           = frame.cols;
+	msg->encoding        = mat_type2encoding(frame.type());
+	msg->step            = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
+	size_t size          = frame.step * frame.rows;
+
+	msg->data.resize(size);
+	memcpy(&msg->data[0], frame.data, size);
+	msg->header.frame_id = std::to_string(frame_id);
 }
 
 static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
@@ -56,29 +54,28 @@ static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
 
 static void cb_new_rtspsrc_pad(GstElement *element,GstPad*pad,gpointer  data)
 {
-	gchar *name;
-	GstCaps * p_caps;
-	gchar * description;
-	GstElement *p_rtph264depay;
-	
+	gchar       * name;
+	GstCaps     * p_caps;
+	gchar       * description;
+	GstElement  * p_rtph264depay;
+
 	name = gst_pad_get_name(pad);
 	g_print("A new pad %s was created\n", name);
-	
 	// here, you would setup a new pad link for the newly created pad
 	p_caps = gst_pad_get_pad_template_caps (pad);
-	
+
 	description = gst_caps_to_string(p_caps);
 	printf("%s\n",p_caps,", ",description,"\n");
 	g_free(description);
-	
+
 	p_rtph264depay = GST_ELEMENT(data);
-	
+
 	// try to link the pads then ...
 	if(!gst_element_link_pads(element, name, p_rtph264depay, "sink"))
 	{
 	    printf("Failed to link elements 3\n");
 	}
-	
+
 	g_free(name);
 }
 
@@ -102,12 +99,12 @@ void RtspReceiver::start()
 	}
 	_starting = true;
 
-	bool running = false;
+	bool running    = false;
 	bool pipelineUp = false;
 
-	GstBus *bus;
-	GstMessage *msg;
-	GstStateChangeReturn ret;
+	GstBus                     * bus;
+	GstMessage                 * msg;
+	GstStateChangeReturn 		 ret;
 
 	do
 	{
@@ -126,10 +123,10 @@ void RtspReceiver::start()
 		g_object_set (G_OBJECT (data.sink)  , "sync"    , FALSE       , NULL);
 		g_object_set(GST_OBJECT(data.source), "location", _uri.c_str(), NULL);
 
+		// connect appsink to caps
 		GstCaps* filtercaps = gst_caps_from_string("application/x-rtp");
 		g_object_set (G_OBJECT (data.filter1), "caps", filtercaps, NULL);
 		gst_caps_unref(filtercaps);
-
   		g_object_set (data.sink, "emit-signals", TRUE, "caps", data.filter1, NULL);
 
 		gst_bin_add_many (GST_BIN (_pipeline), data.source
@@ -153,8 +150,6 @@ void RtspReceiver::start()
 		}
 		
 		g_signal_connect(data.rtppay, "pad-added" , G_CALLBACK(on_pad_added), data.parse);
-
-
 		g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
 
 		// start playing
@@ -200,15 +195,15 @@ void RtspReceiver::start()
 			a = NULL;
 			g_print("unref success\n");
 		};
-		//unref(data.source);
-		//unref(data.capsfilter);
-		//unref(data.rtph264depay);
-		//unref(data.h264parse);
-		//unref(data.avdec_h264);
-		//unref(data.sink);
+		unref(data.source);
+		unref(data.rtppay);
+		unref(data.parse);
+		unref(data.filter1);
+		unref(data.decodebin);
+		unref(data.capsfilter);
+		unref(data.sink);
 
 		// If we failed before adding items to the pipeline, then clean up
-
 		_running = false;
 	}
 	else
@@ -227,9 +222,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 	GstSample *sample;
 	GstBuffer *buffer;
 	GstMapInfo map;
-
 	//g_print("Callback\n");
-
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
 	if (sample)
@@ -246,8 +239,8 @@ static void new_sample(GstElement *sink, CustomData *data)
 
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		//cv::imshow("usb", mRGB);
-		//cv::waitKey(1);
+		cv::imshow("usb", mRGB);
+		cv::waitKey(1);
 
 		// TODO: add frame_id
 		convert_frame_to_message(mRGB, 10, msg);

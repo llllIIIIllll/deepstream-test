@@ -8,15 +8,12 @@
 std::string
 mat_type2encoding(int mat_type)
 {
-  switch (mat_type) {
-    case CV_8UC1:
-      return "mono8";
-    case CV_8UC3:
-      return "bgr8";
-    case CV_16SC1:
-      return "mono16";
-    case CV_8UC4:
-      return "rgba8";
+  switch (mat_type) 
+  {
+    case CV_8UC1 : return "mono8";
+    case CV_8UC3 : return "bgr8";
+    case CV_16SC1: return "mono16";
+    case CV_8UC4 : return "rgba8";
     default:
       throw std::runtime_error("Unsupported encoding type");
   }
@@ -28,8 +25,9 @@ mat_type2encoding(int mat_type)
  * \param[in] frame_id ID for the ROS message.
  * \param[out] Allocated shared pointer for the ROS Image message.
  */
-void convert_frame_to_message(
-  const cv::Mat & frame, size_t frame_id, sensor_msgs::msg::Image::SharedPtr msg)
+void convert_frame_to_message(const cv::Mat & frame,
+			   						size_t frame_id, 
+									sensor_msgs::msg::Image::SharedPtr msg)
 {
   // copy cv information into ros message
   msg->height = frame.rows;
@@ -46,8 +44,8 @@ UsbReceiver::UsbReceiver() : Receiver()
 {
 	// default settting
 	data._height = 480;
-	data._width = 640;
-	data._fps = 30;
+	data._width  = 640;
+	data._fps    = 30;
 	data._format = "BGR";
 }
 
@@ -58,10 +56,10 @@ void UsbReceiver::set_data_elements(GstCaps *caps, GstStructure *extraCtrls)
 	// resulation format fps
 	caps = gst_caps_new_simple(
 		"video/x-raw",
-		"format", G_TYPE_STRING, data._format.c_str(),
-		"width", G_TYPE_INT, data._width,
-		"height", G_TYPE_INT, data._height,
-		"framerate", GST_TYPE_FRACTION, data._fps, 1,
+		"format"     , G_TYPE_STRING    , data._format.c_str(),
+		"width"      , G_TYPE_INT       , data._width         ,
+		"height"     , G_TYPE_INT       , data._height        ,
+		"framerate"  , GST_TYPE_FRACTION, data._fps           , 1,
 		NULL);
 	// v4l2src extra-control
 	// g_object_set(data.source, "extra-controls",
@@ -70,10 +68,10 @@ void UsbReceiver::set_data_elements(GstCaps *caps, GstStructure *extraCtrls)
 
 	try
 	{
-		g_object_set(data.source, "device", _uri.c_str(), NULL);
-		g_object_set(data.capsfilter, "caps", caps, NULL);
-		g_object_set(G_OBJECT(data.sink), "sync", TRUE, NULL);
-		g_object_set(data.sink, "emit-signals", TRUE, NULL);
+		g_object_set(data.source        , "device"      , _uri.c_str(), NULL);
+		g_object_set(data.capsfilter    , "caps"        , caps        , NULL);
+		g_object_set(G_OBJECT(data.sink), "sync"        , TRUE        , NULL);
+		g_object_set(data.sink          , "emit-signals", TRUE        , NULL);
 	}
 	catch (const std::exception &ex)
 	{
@@ -98,9 +96,9 @@ void UsbReceiver::start()
 		g_print("Already running!");
 		return;
 	}
-	_starting = true;
+	_starting       = true;
 
-	bool running = false;
+	bool running    = false;
 	bool pipelineUp = false;
 
 	GstBus *bus;
@@ -110,11 +108,11 @@ void UsbReceiver::start()
 	do
 	{
 		// create elements
-		data.source = gst_element_factory_make("v4l2src", "source");
+		data.source     = gst_element_factory_make("v4l2src", "source");
 		data.capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
-		data.sink = gst_element_factory_make("appsink", "sink");
+		data.sink       = gst_element_factory_make("appsink", "sink");
 
-		GstCaps *caps = NULL;
+		GstCaps *caps            = NULL;
 		GstStructure *extraCtrls = NULL;
 
 		set_data_elements(caps, extraCtrls);
