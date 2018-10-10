@@ -26,11 +26,11 @@ using namespace std::chrono_literals;
 //TODO: Tabular
 int main(int argc, char * argv[])                                            
 {                                                                            
-   	gst_init (&argc, &argv);  
+	gst_init (&argc, &argv);  
 	rclcpp::init(argc, argv);                                                  
-
-   	rclcpp::spin(std::make_shared<ros2_videostreamer::RtspReceiverNode>());
-   	rclcpp::shutdown();
-   return 0;                                                                  
+	
+	rclcpp::spin(std::make_shared<ros2_videostreamer::RtspReceiverNode>());
+	rclcpp::shutdown();
+	return 0;                                                                  
 }                                                                            
 
