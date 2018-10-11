@@ -14,7 +14,14 @@ ros2 run ros2_videostreamer usb_node
 ```
 
 use this command to detect whether rtsp have been published
+
+use this package
 ```bash
-ros2 run intra_process_demo image_view_node
+git@gitlab.autoflight.com:ROS/basic_test.git
+cd basic_test && git checkout dev
+
 ```
-It will take a lot of time to show the picture, need to figue out why.
+
+```bash
+ros2 run basic_test standalone_sub 
+```
