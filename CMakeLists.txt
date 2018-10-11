@@ -24,8 +24,6 @@ find_package(class_loader REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(perception_msgs REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
@@ -36,7 +34,6 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 include_directories(
 	include
 	${GSTREAMER_INCLUDE_DIRS}
-	${Boost_INCLUDE_DIR}
 )
 
 ###########################
@@ -50,7 +47,6 @@ function(custome_executable subfolder target addition)
 							 #${ARGV5}
 	)
 	target_link_libraries(${target}
-		${Boost_LIBRARY_DIRS}/libboost_system.so 
 		${GSTREAMER_LIBRARIES} 
 		${OpenCV_LIBS}
 		pthread
@@ -63,7 +59,6 @@ function(custome_executable subfolder target addition)
 		"std_msgs"
 		"sensor_msgs"
 		"geometry_msgs"  
-		"perception_msgs" 
 	)
 	install(TARGETS ${target}
 	DESTINATION lib/${PROJECT_NAME})
