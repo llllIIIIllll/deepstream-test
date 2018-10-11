@@ -238,7 +238,8 @@ static void new_sample(GstElement *sink, CustomData *data)
 		cv::imshow("usb", mRGB);
 		cv::waitKey(1);
 
-		convert_frame_to_message(mRGB, 10, msg);
+		convert_frame_to_message(mRGB, 0, msg);
+
 		data->image_pub_->publish(msg);
 
 		gst_buffer_unmap(buffer, &map);

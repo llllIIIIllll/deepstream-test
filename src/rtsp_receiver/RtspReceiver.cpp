@@ -222,7 +222,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 	GstSample *sample;
 	GstBuffer *buffer;
 	GstMapInfo map;
-	//g_print("Callback\n");
+	g_print("Callback\n");
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
 	if (sample)
