@@ -20,7 +20,6 @@ endif()
 #####################
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(class_loader REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -55,7 +54,6 @@ function(custome_executable subfolder target addition)
 		"rclcpp"
 		"rcl"
 		"rclcpp"
-		"class_loader"
 		"std_msgs"
 		"sensor_msgs"
 		"geometry_msgs"  

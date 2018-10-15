@@ -1,4 +1,5 @@
 #include "rtsp_receiver/RtspReceiver.hpp"
+#include <chrono>
 
 
 // TODO: delete unnecessary component
@@ -112,22 +113,24 @@ void RtspReceiver::start()
 		_pipeline = gst_pipeline_new("Rtsp pipeline");
 
 		data.source    = gst_element_factory_make( "rtspsrc"     , "source");
-		data.rtppay    = gst_element_factory_make( "rtph264depay", "depayl");
-		data.parse     = gst_element_factory_make( "h264parse"   , "parse" );
-		data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
-		data.decodebin = gst_element_factory_make( "avdec_h264"  , "decode");
+		data.rtppay    = gst_element_factory_make( "rtph265depay", "depayl");
+		data.parse     = gst_element_factory_make( "h265parse"   , "parse" );
+		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
+		data.decodebin = gst_element_factory_make( "omxh265dec"  , "decode");
+		//data.decodebin = gst_element_factory_make( "avdec_h265"  , "decode");
 		data.sink      = gst_element_factory_make( "appsink"     , "sink"  );
 
 		// set up link
-		g_object_set (G_OBJECT (data.source), "latency" , 2000        , NULL);
-		g_object_set (G_OBJECT (data.sink)  , "sync"    , FALSE       , NULL);
-		g_object_set(GST_OBJECT(data.source), "location", _uri.c_str(), NULL);
+		g_object_set (G_OBJECT (data.source)   , "latency"    , 50         , NULL);
+		g_object_set (G_OBJECT (data.sink)     , "sync"       , FALSE       ,"drop", TRUE, NULL);
+		g_object_set (G_OBJECT (data.decodebin), "max-threads", 6           , NULL);
+		g_object_set(GST_OBJECT(data.source)   , "location"   , _uri.c_str(), NULL);
 
 		// connect appsink to caps
-		GstCaps* filtercaps = gst_caps_from_string("application/x-rtp");
-		g_object_set (G_OBJECT (data.filter1), "caps", filtercaps, NULL);
-		gst_caps_unref(filtercaps);
-  		g_object_set (data.sink, "emit-signals", TRUE, "caps", data.filter1, NULL);
+		//GstCaps* filtercaps = gst_caps_from_string("application/x-rtp");
+		//g_object_set (G_OBJECT (data.filter1), "caps", filtercaps, NULL);
+		//gst_caps_unref(filtercaps);
+  		g_object_set (data.sink, "emit-signals", TRUE, NULL);
 
 		gst_bin_add_many (GST_BIN (_pipeline), data.source
 		                                     , data.rtppay
@@ -219,34 +222,68 @@ void RtspReceiver::start()
 /* The appsink has received a buffer */
 static void new_sample(GstElement *sink, CustomData *data)
 {
-	GstSample *sample;
-	GstBuffer *buffer;
-	GstMapInfo map;
-	g_print("Callback\n");
+	GstSample   *sample;
+	GstBuffer   *buffer;
+	GstMapInfo  map;
+    gboolean    res;
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
+	auto start = std::chrono::system_clock::now();
 	if (sample)
 	{
+		// get picture format
+		GstCaps *caps;
+		GstStructure *s;
+    	caps = gst_sample_get_caps (sample);
+    	if (!caps) 
+		{
+    	  g_print ("could not get snapshot format\n");
+    	  exit (-1);
+    	}
+    	s = gst_caps_get_structure (caps, 0);
+    	/* we need to get the final caps on the buffer to get the size */
+    	res = gst_structure_get_int (s, "width", &data->_width);
+    	res |= gst_structure_get_int (s, "height", &data->_height);
+
+		if (!res) 
+		{
+			g_print ("could not get snapshot dimension\n");
+			exit (-1);
+		}
+
 		// get buffer
 		buffer = gst_sample_get_buffer(sample);
 		gst_buffer_map(buffer, &map, GST_MAP_READ);
 
 		cv::Mat mRGB;
-
-		cv::Mat t = cv::Mat(data->_height + data->_height / 2, data->_width,
-							CV_8UC1, (void *)map.data);
-		cvtColor(t, mRGB, CV_YUV420p2RGB);
-
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		cv::imshow("usb", mRGB);
+		bool use_rgb = false;
+		if (use_rgb)
+		{
+			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
+								CV_8UC1, (void *)map.data);
+			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
+			convert_frame_to_message(mRGB, 10, msg);
+			//cv::imshow("usb", mRGB);
+		}
+		else
+		{
+
+			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
+								CV_8UC1, (void *)map.data);
+			convert_frame_to_message(t, 10, msg);
+			cv::imshow("usb", t);
+		}
 		cv::waitKey(1);
 
 		// TODO: add frame_id
-		convert_frame_to_message(mRGB, 10, msg);
 		data->image_pub_->publish(msg);
 
 		gst_buffer_unmap(buffer, &map);
 		gst_sample_unref(sample);
 	}
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> diff = end - start;
+	std::cout << "Time:  " << GST_BUFFER_PTS(buffer) << std::endl;
 }
