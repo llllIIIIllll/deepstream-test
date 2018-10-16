@@ -1,3 +1,4 @@
+#include "host_cpu.h"
 #include "rtsp_receiver/RtspReceiver.hpp"
 #include <chrono>
 
@@ -113,11 +114,19 @@ void RtspReceiver::start()
 		_pipeline = gst_pipeline_new("Rtsp pipeline");
 
 		data.source    = gst_element_factory_make( "rtspsrc"     , "source");
-		data.rtppay    = gst_element_factory_make( "rtph265depay", "depayl");
-		data.parse     = gst_element_factory_make( "h265parse"   , "parse" );
+		data.rtppay    = gst_element_factory_make( "rtph264depay", "depayl");
+		data.parse     = gst_element_factory_make( "h264parse"   , "parse" );
 		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
-		data.decodebin = gst_element_factory_make( "omxh265dec"  , "decode");
-		//data.decodebin = gst_element_factory_make( "avdec_h265"  , "decode");
+		
+		if (CMAKE_HOST_SYSTEM_PROCESSOR == "aarch64")
+		{
+			data.decodebin = gst_element_factory_make( "omxh264dec"  , "decode");
+		}
+		else
+		{
+			data.decodebin = gst_element_factory_make( "avdec_h264"  , "decode");
+		}
+
 		data.sink      = gst_element_factory_make( "appsink"     , "sink"  );
 
 		// set up link

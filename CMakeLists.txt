@@ -15,6 +15,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 	add_compile_options(-Wall -Wextra -O2) #-Wpedantic
 endif()
 
+# add host cpu option
+configure_file(
+	"${PROJECT_SOURCE_DIR}/host_cpu.h.in"
+	"${PROJECT_BINARY_DIR}/host_cpu.h"
+)
+
 #####################
 # find dependencies #
 #####################
@@ -33,6 +39,7 @@ pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 include_directories(
 	include
 	${GSTREAMER_INCLUDE_DIRS}
+	${PROJECT_BINARY_DIR}
 )
 
 ###########################
