@@ -267,14 +267,14 @@ static void new_sample(GstElement *sink, CustomData *data)
 		cv::Mat mRGB;
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		bool use_rgb = false;
+		bool use_rgb = true;
 		if (use_rgb)
 		{
 			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
 								CV_8UC1, (void *)map.data);
 			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
 			convert_frame_to_message(mRGB, 10, msg);
-			//cv::imshow("usb", mRGB);
+			cv::imshow("rtsp", mRGB);
 		}
 		else
 		{
@@ -282,7 +282,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
 								CV_8UC1, (void *)map.data);
 			convert_frame_to_message(t, 10, msg);
-			cv::imshow("usb", t);
+			cv::imshow("rtsp", t);
 		}
 		cv::waitKey(1);
 
