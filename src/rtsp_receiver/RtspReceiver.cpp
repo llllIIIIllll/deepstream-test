@@ -41,6 +41,9 @@ void convert_frame_to_message(
 	msg->data.resize(size);
 	memcpy(&msg->data[0], frame.data, size);
 	msg->header.frame_id = std::to_string(frame_id);
+  	std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
+    msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
+    msg->header.stamp.nanosec = now.count() % 1000000000;
 }
 
 static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
@@ -114,17 +117,17 @@ void RtspReceiver::start()
 		_pipeline = gst_pipeline_new("Rtsp pipeline");
 
 		data.source    = gst_element_factory_make( "rtspsrc"     , "source");
-		data.rtppay    = gst_element_factory_make( "rtph264depay", "depayl");
-		data.parse     = gst_element_factory_make( "h264parse"   , "parse" );
+		data.rtppay    = gst_element_factory_make( "rtph265depay", "depayl");
+		data.parse     = gst_element_factory_make( "h265parse"   , "parse" );
 		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
 		
 		if (CMAKE_HOST_SYSTEM_PROCESSOR == "aarch64")
 		{
-			data.decodebin = gst_element_factory_make( "omxh264dec"  , "decode");
+			data.decodebin = gst_element_factory_make( "omxh265dec"  , "decode");
 		}
 		else
 		{
-			data.decodebin = gst_element_factory_make( "avdec_h264"  , "decode");
+			data.decodebin = gst_element_factory_make( "avdec_h265"  , "decode");
 		}
 
 		data.sink      = gst_element_factory_make( "appsink"     , "sink"  );
@@ -267,14 +270,14 @@ static void new_sample(GstElement *sink, CustomData *data)
 		cv::Mat mRGB;
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		bool use_rgb = false;
+		bool use_rgb = true;
 		if (use_rgb)
 		{
 			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
 								CV_8UC1, (void *)map.data);
 			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
 			convert_frame_to_message(mRGB, 10, msg);
-			//cv::imshow("usb", mRGB);
+			cv::imshow("usb", mRGB);
 		}
 		else
 		{
