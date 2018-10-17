@@ -41,6 +41,9 @@ void convert_frame_to_message(
 	msg->data.resize(size);
 	memcpy(&msg->data[0], frame.data, size);
 	msg->header.frame_id = std::to_string(frame_id);
+  	std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
+    msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
+    msg->header.stamp.nanosec = now.count() % 1000000000;
 }
 
 static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
@@ -274,7 +277,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 								CV_8UC1, (void *)map.data);
 			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
 			convert_frame_to_message(mRGB, 10, msg);
-			cv::imshow("rtsp", mRGB);
+			cv::imshow("usb", mRGB);
 		}
 		else
 		{
@@ -282,7 +285,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
 								CV_8UC1, (void *)map.data);
 			convert_frame_to_message(t, 10, msg);
-			cv::imshow("rtsp", t);
+			cv::imshow("usb", t);
 		}
 		cv::waitKey(1);
 

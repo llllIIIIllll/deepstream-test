@@ -8,7 +8,7 @@ namespace ros2_videostreamer
         image_pub_qos_profile_ = rmw_qos_profile_default;
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-            "image", image_pub_qos_profile_);
+            "image_raw", image_pub_qos_profile_);
 
 		this->receiver_.data.image_pub_ = image_pub_;
 		this->uri_ = "/dev/video0";
