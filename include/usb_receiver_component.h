@@ -31,8 +31,6 @@ namespace ros2_videostreamer
 
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
         rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
-
-
     };
 
 }// namespace read_rtsp
