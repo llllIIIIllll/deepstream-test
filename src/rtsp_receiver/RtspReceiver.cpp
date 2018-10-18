@@ -70,7 +70,7 @@ static void cb_new_rtspsrc_pad(GstElement *element,GstPad*pad,gpointer  data)
 	p_caps = gst_pad_get_pad_template_caps (pad);
 
 	description = gst_caps_to_string(p_caps);
-	printf("%s\n",p_caps,", ",description,"\n");
+	// printf("%s\n",p_caps,", ",description,"\n");
 	g_free(description);
 
 	p_rtph264depay = GST_ELEMENT(data);
@@ -277,7 +277,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 								CV_8UC1, (void *)map.data);
 			cvtColor(t, mRGB, CV_YUV420p2BGR);
 			convert_frame_to_message(mRGB, 10, msg);
-			cv::imshow("usb", mRGB);
+			// cv::imshow("usb", mRGB);
 		}
 		else
 		{
