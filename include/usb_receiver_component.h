@@ -1,9 +1,10 @@
-#ifndef RTSP_RECEIVER_COMPONENT_H
-#define RTSP_RECEIVER_COMPONENT_H
+#ifndef USB_RECEIVER_COMPONENT_H
+#define USB_RECEIVER_COMPONENT_H
 
 #include "rclcpp/rclcpp.hpp"
 #include "usb_receiver/UsbReceiver.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "std_srvs/srv/set_bool.hpp"
 
 namespace ros2_videostreamer
 {
@@ -14,16 +15,28 @@ namespace ros2_videostreamer
         ~UsbReceiverNode();
 
     private:
-        UsbReceiver receiver_;
-        std::string   uri_;
 
-		rmw_qos_profile_t image_pub_qos_profile_;
+        void switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+                            const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+                            const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
-        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+        UsbReceiver                             receiver_;
+        std::string                             uri_;
+
+		rmw_qos_profile_t                       image_pub_qos_profile_;
+        rmw_qos_profile_t                       switch_qos_profile_;
+
+        std::string                             param_switch_service_name_;
+        bool                                    switch_on_;
+
+        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
+        rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
+
+
     };
 
 }// namespace read_rtsp
 
-#endif //RTSP_RECEIVER_COMPONENT_H 
+#endif //USB_RECEIVER_COMPONENT_H 
 
 

@@ -1,0 +1,10 @@
+{
+    "editor.fontLigatures": true,
+
+    "vim.insertModeKeyBindings": [
+    {
+      "before": ["j", "j"],
+      "after": ["<Esc>"]
+    }
+    ],
+}

@@ -240,7 +240,7 @@ static void new_sample(GstElement *sink, CustomData *data)
     gboolean    res;
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
-	auto start = std::chrono::system_clock::now();
+	//auto start = std::chrono::system_clock::now();
 	if (sample)
 	{
 		// get picture format
@@ -275,7 +275,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 		{
 			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
 								CV_8UC1, (void *)map.data);
-			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
+			cvtColor(t, mRGB, CV_YUV420p2BGR);
 			convert_frame_to_message(mRGB, 10, msg);
 			cv::imshow("usb", mRGB);
 		}
@@ -285,9 +285,9 @@ static void new_sample(GstElement *sink, CustomData *data)
 			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
 								CV_8UC1, (void *)map.data);
 			convert_frame_to_message(t, 10, msg);
-			cv::imshow("usb", t);
+			//cv::imshow("usb", t);
 		}
-		cv::waitKey(1);
+		//cv::waitKey(1);
 
 		// TODO: add frame_id
 		data->image_pub_->publish(msg);
@@ -295,7 +295,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 		gst_buffer_unmap(buffer, &map);
 		gst_sample_unref(sample);
 	}
-	auto end = std::chrono::system_clock::now();
-	std::chrono::duration<double> diff = end - start;
-	std::cout << "Time:  " << GST_BUFFER_PTS(buffer) << std::endl;
+	//auto end = std::chrono::system_clock::now();
+	//std::chrono::duration<double> diff = end - start;
+	//std::cout << "Time:  " << GST_BUFFER_PTS(buffer) << std::endl;
 }

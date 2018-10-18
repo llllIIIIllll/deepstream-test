@@ -2,6 +2,7 @@
 #define __RTSPRECEIVER_HPP__
 
 #include "Receiver.hpp"
+#include "common.hpp"
 
 #include "sensor_msgs/msg/image.hpp"
 #include "rclcpp/rclcpp.hpp"
