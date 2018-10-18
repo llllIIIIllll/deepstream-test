@@ -42,7 +42,6 @@ namespace ros2_videostreamer
         const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
         const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
     {
-		this->receiver_.stop();
         // RCLCPP_INFO(this->get_logger(), "in switch CB");
         if(switch_on_ && !request->data )
         {
