@@ -275,7 +275,15 @@ static void new_sample(GstElement *sink, CustomData *data)
 		{
 			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
 								CV_8UC1, (void *)map.data);
-			cvtColor(t, mRGB, CV_YUV420p2BGR);
+
+			if (CMAKE_HOST_SYSTEM_PROCESSOR == "aarch64")
+			{
+				cvtColor(t, mRGB, CV_YUV2BGR_NV12);
+			}
+			else
+			{
+				cvtColor(t, mRGB, CV_YUV420p2BGR);
+			}
 			convert_frame_to_message(mRGB, 10, msg);
 			// cv::imshow("usb", mRGB);
 		}
