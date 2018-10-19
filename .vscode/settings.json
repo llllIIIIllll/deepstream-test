@@ -7,4 +7,5 @@
       "after": ["<Esc>"]
     }
     ],
+    "vim.useSystemClipboard": true,
 }

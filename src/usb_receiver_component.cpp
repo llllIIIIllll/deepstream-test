@@ -7,6 +7,10 @@ namespace ros2_videostreamer
 	{
         param_switch_service_name_ = "/usb_node/switch_on";
 		this->switch_on_ = true;
+        param_usb_uri_ = "/dev/video0";
+
+        this->get_parameter_or("param_usb_uri", param_usb_uri_,param_usb_uri_);
+        std::cout << param_usb_uri_ << std::endl;
 
         image_pub_qos_profile_ = rmw_qos_profile_default;
         switch_qos_profile_ = rmw_qos_profile_default;
@@ -20,7 +24,7 @@ namespace ros2_videostreamer
             "image_raw", image_pub_qos_profile_);
 
 		this->receiver_.data.image_pub_ = image_pub_;
-		this->uri_ = "/dev/video0";
+        this->uri_ = param_usb_uri_;
 		this->receiver_.setUri(this->uri_);
 	
 

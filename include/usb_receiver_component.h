@@ -27,6 +27,8 @@ namespace ros2_videostreamer
         rmw_qos_profile_t                       switch_qos_profile_;
 
         std::string                             param_switch_service_name_;
+        std::string                             param_usb_uri_;
+         
         bool                                    switch_on_;
 
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;

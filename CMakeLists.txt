@@ -90,6 +90,11 @@ SET(RTSP_ADDITION
 custome_executable(receiver usb_node ${USB_ADDITION})
 custome_executable(receiver rtsp_node ${RTSP_ADDITION})
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
+  
 ############
 # set test #
 ############
