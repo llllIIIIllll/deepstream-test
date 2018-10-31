@@ -10,7 +10,15 @@ namespace ros2_videostreamer
         param_usb_uri_ = "/dev/video0";
 
         this->get_parameter_or("param_usb_uri", param_usb_uri_,param_usb_uri_);
-        std::cout << param_usb_uri_ << std::endl;
+        this->get_parameter_or("param_camera_info", param_camera_info_, param_camera_info_);
+
+        {
+            // parse camera_info
+            double k;
+            std::stringstream iss(param_camera_info_);
+            while (iss >> k)
+                camera_info_message_.push_back(k);
+        }
 
         image_pub_qos_profile_ = rmw_qos_profile_default;
         switch_qos_profile_ = rmw_qos_profile_default;
@@ -21,7 +29,24 @@ namespace ros2_videostreamer
 
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-            "image_raw", image_pub_qos_profile_);
+            "/image_raw", image_pub_qos_profile_);
+
+        camera_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
+            "/camera_info", image_pub_qos_profile_);
+
+        auto timer_callback =
+            [this]() -> void {
+                sensor_msgs::msg::CameraInfo message;
+                message.k[0] = camera_info_message_[0];
+                message.k[2] = camera_info_message_[1];
+                message.k[4] = camera_info_message_[2];
+                message.k[5] = camera_info_message_[3];
+                message.k[8] = camera_info_message_[4];
+
+                this->camera_info_pub_->publish(message);
+        };
+
+        timer_ = this->create_wall_timer(500ms, timer_callback);
 
 		this->receiver_.data.image_pub_ = image_pub_;
         this->uri_ = param_usb_uri_;

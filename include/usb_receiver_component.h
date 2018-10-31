@@ -4,7 +4,12 @@
 #include "rclcpp/rclcpp.hpp"
 #include "usb_receiver/UsbReceiver.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include <vector>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 namespace ros2_videostreamer
 {
@@ -22,16 +27,17 @@ namespace ros2_videostreamer
 
         UsbReceiver                             receiver_;
         std::string                             uri_;
-
 		rmw_qos_profile_t                       image_pub_qos_profile_;
         rmw_qos_profile_t                       switch_qos_profile_;
-
         std::string                             param_switch_service_name_;
         std::string                             param_usb_uri_;
-         
+        std::string                             param_camera_info_;
         bool                                    switch_on_;
+        std::vector<double>                     camera_info_message_;
 
+        rclcpp::TimerBase::SharedPtr                                                timer_;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr                  camera_info_pub_;
         rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
     };
 
