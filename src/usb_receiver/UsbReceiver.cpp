@@ -37,7 +37,7 @@ void convert_frame_to_message(const cv::Mat & frame,
   size_t size = frame.step * frame.rows;
   msg->data.resize(size);
   memcpy(&msg->data[0], frame.data, size);
-  msg->header.frame_id = std::to_string(frame_id);
+  msg->header.frame_id = "camera";
 }
 
 UsbReceiver::UsbReceiver() : Receiver()

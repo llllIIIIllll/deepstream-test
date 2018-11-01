@@ -29,10 +29,10 @@ namespace ros2_videostreamer
 
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-            "/image_raw", image_pub_qos_profile_);
+            "image_raw", image_pub_qos_profile_);
 
         camera_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-            "/camera_info", image_pub_qos_profile_);
+            "camera_info", image_pub_qos_profile_);
 
         auto timer_callback =
             [this]() -> void {
