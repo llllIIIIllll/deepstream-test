@@ -29,6 +29,9 @@ void convert_frame_to_message(const cv::Mat & frame,
 			   						size_t frame_id, 
 									sensor_msgs::msg::Image::SharedPtr msg)
 {
+  std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
+  msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
+  msg->header.stamp.nanosec = now.count() % 1000000000;
   // copy cv information into ros message
   msg->height = frame.rows;
   msg->width = frame.cols;
