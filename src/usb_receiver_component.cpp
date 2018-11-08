@@ -23,6 +23,10 @@ namespace ros2_videostreamer
         image_pub_qos_profile_ = rmw_qos_profile_default;
         switch_qos_profile_ = rmw_qos_profile_default;
 		
+		image_pub_qos_profile_.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+        image_pub_qos_profile_.depth = 10;
+        image_pub_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+        
 		switch_qos_profile_.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
         switch_qos_profile_.depth = 10;
         switch_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
