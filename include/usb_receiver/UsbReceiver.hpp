@@ -49,7 +49,7 @@ typedef struct _CustomData
 
 } CustomData;
 
-static void new_sample(GstElement *sink, CustomData *data);
+void new_sample(GstElement *sink, CustomData *data);
 
 class UsbReceiver : public Receiver 
 {

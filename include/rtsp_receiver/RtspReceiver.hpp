@@ -50,10 +50,11 @@ typedef struct _CustomData
 	bool _exposure_auto_priority;		  // default=0 value=1
 
 	rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
+	std::string host_cpu_;
 
 } CustomData;
 
-static void new_sample(GstElement *sink, CustomData *data);
+void new_sample(GstElement *sink, CustomData *data);
 
 class RtspReceiver : public Receiver 
 {

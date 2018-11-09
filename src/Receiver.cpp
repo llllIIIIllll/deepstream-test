@@ -76,6 +76,8 @@ void Receiver::setUri(const std::string uri) { _uri = uri; }
 gboolean Receiver::_onBusMessage(GstBus* bus, GstMessage* msg, gpointer data) {
   assert(msg != NULL && data != NULL);
   Receiver* pThis = (Receiver*)data;
+  RESERVE(pThis);
+  RESERVE(bus);
 
   switch (GST_MESSAGE_TYPE(msg)) {
     case (GST_MESSAGE_ERROR): {

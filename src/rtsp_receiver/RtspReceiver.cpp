@@ -48,6 +48,8 @@ void convert_frame_to_message(
 
 static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
 {
+	RESERVE(element);
+
     GstPad *sinkpad;
     GstElement *decoder = (GstElement *) data;
     /* We can now link this pad with the rtsp-decoder sink pad */
@@ -86,6 +88,8 @@ static void cb_new_rtspsrc_pad(GstElement *element,GstPad*pad,gpointer  data)
 
 RtspReceiver::RtspReceiver() : Receiver()
 {
+	data.host_cpu_ = (std::string)CMAKE_HOST_SYSTEM_PROCESSOR;
+	std::cout << data.host_cpu_ << std::endl;
 }
 
 RtspReceiver::~RtspReceiver() {}
@@ -111,6 +115,9 @@ void RtspReceiver::start()
 	GstMessage                 * msg;
 	GstStateChangeReturn 		 ret;
 
+	RESERVE(pipelineUp);
+	RESERVE(msg);
+
 	do
 	{
 		// TODO: make code consice
@@ -121,7 +128,7 @@ void RtspReceiver::start()
 		data.parse     = gst_element_factory_make( "h265parse"   , "parse" );
 		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
 		
-		if (CMAKE_HOST_SYSTEM_PROCESSOR == "aarch64")
+		if (data.host_cpu_ == "aarch64")
 		{
 			data.decodebin = gst_element_factory_make( "omxh265dec"  , "decode");
 		}
@@ -232,7 +239,7 @@ void RtspReceiver::start()
 }
 
 /* The appsink has received a buffer */
-static void new_sample(GstElement *sink, CustomData *data)
+void new_sample(GstElement *sink, CustomData *data)
 {
 	GstSample   *sample;
 	GstBuffer   *buffer;
@@ -276,7 +283,7 @@ static void new_sample(GstElement *sink, CustomData *data)
 			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
 								CV_8UC1, (void *)map.data);
 
-			if (CMAKE_HOST_SYSTEM_PROCESSOR == "aarch64")
+			if (data->host_cpu_ == "aarch64")
 			{
 				cvtColor(t, mRGB, CV_YUV2BGR_NV12);
 			}

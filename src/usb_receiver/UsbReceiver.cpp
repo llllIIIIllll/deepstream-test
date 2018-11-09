@@ -29,6 +29,8 @@ void convert_frame_to_message(const cv::Mat & frame,
 			   						size_t frame_id, 
 									sensor_msgs::msg::Image::SharedPtr msg)
 {
+  RESERVE(frame_id);
+
   std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
   msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
   msg->header.stamp.nanosec = now.count() % 1000000000;
@@ -103,11 +105,12 @@ void UsbReceiver::start()
 
 	bool running    = false;
 	bool pipelineUp = false;
-
 	GstBus *bus;
 	GstMessage *msg;
 	GstStateChangeReturn ret;
 
+	RESERVE(pipelineUp);
+	RESERVE(msg);
 	do
 	{
 		// create elements
@@ -202,7 +205,7 @@ void UsbReceiver::start()
 }
 
 /* The appsink has received a buffer */
-static void new_sample(GstElement *sink, CustomData *data)
+void new_sample(GstElement *sink, CustomData *data)
 {
 	GstSample *sample;
 	GstBuffer *buffer;

@@ -5,6 +5,7 @@
 #include <gst/gst.h>
 #include <string.h>
 #include <iostream>
+#include "common.hpp"
 //#include "MyTimer.hpp"
 
 class Receiver {
