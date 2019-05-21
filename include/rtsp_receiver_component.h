@@ -19,7 +19,8 @@ namespace ros2_videostreamer
         void switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
                             const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
                             const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
-
+        void topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg);
+        
         RtspReceiver                            receiver_;
         std::string                             uri_;
 
@@ -28,10 +29,12 @@ namespace ros2_videostreamer
 
         std::string                             param_switch_service_name_;
         std::string                             param_rtsp_uri_;
+        std::string                             param_rtsp_uri_topic_;
 
         bool                                    switch_on_;
 
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
+        rclcpp::Subscription<std_msgs::msg::String>::SharedPtr                      rtsp_uri_;  
         rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
     };
 

@@ -2,6 +2,7 @@ ros2_videostreamer:
     rtsp_node:
         ros__parameters:
             param_rtsp_uri: "rtsp://admin:admin@192.168.1.108:554/cam/realmonitor?channel=1&subtype=2"
+            param_rtsp_uri_topic: "rtsp_uri"
     usb_node:
         ros__parameters:
             param_usb_uri: "/dev/v4l/by-id/usb-OmniVision_Technologies__Inc._USB_Camera-B4.09.24.1-video-index0"
