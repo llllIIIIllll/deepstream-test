@@ -58,7 +58,6 @@ typedef struct _CustomData
 void new_sample(GstElement *sink, CustomData *data);
 void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data);
 
-
 class RtspReceiver : public Receiver 
 {
 public:

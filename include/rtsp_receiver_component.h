@@ -5,6 +5,7 @@
 #include "rtsp_receiver/RtspReceiver.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "std_msgs/msg/string.hpp"
 
 namespace ros2_videostreamer
 {

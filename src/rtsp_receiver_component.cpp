@@ -38,11 +38,12 @@ namespace ros2_videostreamer
 		this->receiver_.setUri(this->uri_);
 
         switch_service_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_name_, std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),switch_qos_profile_);
+            param_switch_service_name_, std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1,
+                                            std::placeholders::_2,std::placeholders::_3),switch_qos_profile_);
             
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
-            param_rtsp_uri_topic_, std::bind(),
-        );
+            param_rtsp_uri_topic_, std::bind(&RtspReceiverNode::topic_rtsp_uri_callback_shared, this, std::placeholders::_1),
+                                    switch_qos_profile_);
 
         if(switch_on_)
         {
