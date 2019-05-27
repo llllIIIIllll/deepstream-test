@@ -22,6 +22,7 @@ typedef struct _CustomData
 	GstElement *source;
 	GstElement *rtppay;
 	GstElement *parse;
+	GstElement *identity;
 	GstElement *filter1;
 	GstElement *decodebin;
 
@@ -55,6 +56,8 @@ typedef struct _CustomData
 } CustomData;
 
 void new_sample(GstElement *sink, CustomData *data);
+void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data);
+
 
 class RtspReceiver : public Receiver 
 {

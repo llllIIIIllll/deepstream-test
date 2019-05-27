@@ -26,6 +26,7 @@ using namespace std::chrono_literals;
 //TODO: Tabular
 int main(int argc, char * argv[])                                            
 {                                                                            
+	setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 	gst_init (&argc, &argv);  
 	rclcpp::init(argc, argv);                                                  
 	

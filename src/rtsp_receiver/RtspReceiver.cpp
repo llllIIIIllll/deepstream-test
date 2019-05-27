@@ -126,6 +126,7 @@ void RtspReceiver::start()
 		data.source    = gst_element_factory_make( "rtspsrc"     , "source");
 		data.rtppay    = gst_element_factory_make( "rtph265depay", "depayl");
 		data.parse     = gst_element_factory_make( "h265parse"   , "parse" );
+		data.identity  = gst_element_factory_make( "identity"    , "identity" );
 		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
 		
 		if (data.host_cpu_ == "aarch64")
@@ -162,16 +163,15 @@ void RtspReceiver::start()
 		{
 			printf("\nNOPE\n");
 		}
-		gst_bin_add_many (GST_BIN (_pipeline), data.decodebin
-		                                     , data.sink
-		                                     , NULL);
+		gst_bin_add_many (GST_BIN (_pipeline), data.identity, data.decodebin, data.sink, NULL);
 		
-		if(!gst_element_link_many(data.parse, data.decodebin, data.sink, NULL))
+		if(!gst_element_link_many(data.parse, data.identity, data.decodebin, data.sink, NULL))
 		{
 		    printf("\nFailed to link parse to sink");
 		}
 		
 		g_signal_connect(data.rtppay, "pad-added" , G_CALLBACK(on_pad_added), data.parse);
+		g_signal_connect(data.identity, "handoff" , G_CALLBACK(handoff), data.decodebin);
 		g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
 
 		// start playing
@@ -236,6 +236,21 @@ void RtspReceiver::start()
 		g_print("Running\n");
 	}
 	_starting = false;
+}
+
+void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data)
+{
+	GstMapInfo  map;
+	gst_buffer_map(buffer, &map, GST_MAP_READ);
+	if (map.data[4] == 0x05)
+	{
+		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[0], map.data[1], map.data[2], map.data[3]);
+		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[4], map.data[5], map.data[6], map.data[7]);
+		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[8], map.data[9], map.data[10], map.data[11]);
+		// printf("%3hhu %3hhu %3hhu %3hhu\n", map.data[12], map.data[13], map.data[14], map.data[15]);
+	}
+	gst_buffer_unmap(buffer, &map);
+
 }
 
 /* The appsink has received a buffer */
