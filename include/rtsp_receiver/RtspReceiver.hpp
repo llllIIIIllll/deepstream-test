@@ -5,6 +5,7 @@
 #include "common.hpp"
 
 #include "sensor_msgs/msg/image.hpp"
+#include "std_msgs/msg/header.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 #include <opencv2/opencv.hpp>
@@ -34,6 +35,7 @@ typedef struct _CustomData
 	int _fps;
 
 	std::string _format;
+	uint32_t _timestamp;
 
 	int _brightness;					  // min=-64 max=64 step=1 default=0 value=0
 	int _contrast;						  // min=0 max=95 step=1 default=0 value=0

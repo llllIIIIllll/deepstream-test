@@ -27,8 +27,6 @@ namespace ros2_videostreamer
 
         UsbReceiver                             receiver_;
         std::string                             uri_;
-		rmw_qos_profile_t                       image_pub_qos_profile_;
-        rmw_qos_profile_t                       switch_qos_profile_;
         std::string                             param_switch_service_name_;
         std::string                             param_usb_uri_;
         std::string                             param_camera_info_;

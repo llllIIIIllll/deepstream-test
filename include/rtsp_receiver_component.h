@@ -25,9 +25,6 @@ namespace ros2_videostreamer
         RtspReceiver                            receiver_;
         std::string                             uri_;
 
-		rmw_qos_profile_t                       image_pub_qos_profile_;
-        rmw_qos_profile_t                       switch_qos_profile_;
-
         std::string                             param_switch_service_name_;
         std::string                             param_rtsp_uri_;
         std::string                             param_rtsp_uri_topic_;

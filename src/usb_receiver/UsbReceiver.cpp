@@ -211,7 +211,7 @@ void new_sample(GstElement *sink, CustomData *data)
 	GstBuffer *buffer;
 	GstMapInfo map;
 
-	//g_print("Callback\n");
+	// g_print("Callback\n");
 
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
@@ -241,12 +241,12 @@ void new_sample(GstElement *sink, CustomData *data)
 
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		//cv::imshow("usb", mRGB);
-		//cv::waitKey(1);
+		cv::imshow("usb", mRGB);
+		cv::waitKey(1);
 
 		convert_frame_to_message(mRGB, 0, msg);
 
-		data->image_pub_->publish(msg);
+		data->image_pub_->publish(*msg);
 
 		gst_buffer_unmap(buffer, &map);
 		gst_sample_unref(sample);

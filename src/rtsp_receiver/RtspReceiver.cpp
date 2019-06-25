@@ -153,25 +153,21 @@ void RtspReceiver::start()
   		g_object_set (data.sink, "emit-signals", TRUE, NULL);
 
 		gst_bin_add_many (GST_BIN (_pipeline), data.source
+											 , data.identity
 		                                     , data.rtppay
-		                                     , NULL);
-		// listen for newly created pads
-		g_signal_connect(data.source, "pad-added", G_CALLBACK(cb_new_rtspsrc_pad), data.rtppay);
+		                                     , data.parse
+											 , data.decodebin
+											 , data.sink, NULL);
 
-		gst_bin_add_many (GST_BIN (_pipeline), data.parse, NULL);
-		if(!gst_element_link(data.rtppay,data.parse))
-		{
-			printf("\nNOPE\n");
-		}
-		gst_bin_add_many (GST_BIN (_pipeline), data.identity, data.decodebin, data.sink, NULL);
-		
-		if(!gst_element_link_many(data.parse, data.identity, data.decodebin, data.sink, NULL))
+		if(!gst_element_link_many(data.identity, data.rtppay, data.parse, data.decodebin, data.sink, NULL))
 		{
 		    printf("\nFailed to link parse to sink");
 		}
 		
+		// listen for newly created pads
+		g_signal_connect(data.source, "pad-added" , G_CALLBACK(cb_new_rtspsrc_pad), data.identity);
+		g_signal_connect(data.identity, "handoff" , G_CALLBACK(handoff), &data);
 		g_signal_connect(data.rtppay, "pad-added" , G_CALLBACK(on_pad_added), data.parse);
-		g_signal_connect(data.identity, "handoff" , G_CALLBACK(handoff), data.decodebin);
 		g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
 
 		// start playing
@@ -240,21 +236,25 @@ void RtspReceiver::start()
 
 void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data)
 {
-	GstMapInfo  map;
-	gst_buffer_map(buffer, &map, GST_MAP_READ);
-	if (map.data[4] == 0x05)
-	{
-		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[0], map.data[1], map.data[2], map.data[3]);
-		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[4], map.data[5], map.data[6], map.data[7]);
-		// printf("%3hhu %3hhu %3hhu %3hhu ", map.data[8], map.data[9], map.data[10], map.data[11]);
-		// printf("%3hhu %3hhu %3hhu %3hhu\n", map.data[12], map.data[13], map.data[14], map.data[15]);
-		printf("%3hhu %3hhu %3hhu %3hhu ", map.data[0], map.data[1], map.data[2], map.data[3]);
-		printf("%3hhu %3hhu %3hhu %3hhu ", map.data[4], map.data[5], map.data[6], map.data[7]);
-		printf("%3hhu %3hhu %3hhu %3hhu ", map.data[8], map.data[9], map.data[10], map.data[11]);
-		printf("%3hhu %3hhu %3hhu %3hhu\n", map.data[12], map.data[13], map.data[14], map.data[15]);
-	}
-	gst_buffer_unmap(buffer, &map);
+	RESERVE(sink);
 
+    GstBuffer *frame = NULL;
+    frame = gst_buffer_ref(buffer);
+    if (frame) 
+	{
+        GstMapInfo info;
+        if(gst_buffer_map(frame, &info, GST_MAP_READ))
+		{
+            uint32_t timestamp = 0;
+            if(info.size > 8) 
+			{
+                timestamp = (uint32_t)(info.data[4] << 24 | info.data[5] << 16 | info.data[6] << 8 | info.data[7]);
+            }
+            data->_timestamp = timestamp / 90;
+            gst_buffer_unmap(frame, &info);
+            gst_buffer_unref(frame);
+        }
+    }
 }
 
 /* The appsink has received a buffer */
@@ -294,7 +294,7 @@ void new_sample(GstElement *sink, CustomData *data)
 		gst_buffer_map(buffer, &map, GST_MAP_READ);
 
 		cv::Mat mRGB;
-		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
+		auto msg = std::make_shared<sensor_msgs::msg::Image>();
 
 		bool use_rgb = true;
 		if (use_rgb)
@@ -308,10 +308,10 @@ void new_sample(GstElement *sink, CustomData *data)
 			}
 			else
 			{
-				cvtColor(t, mRGB, CV_YUV420p2BGR);
+				cvtColor(t, mRGB, CV_YUV420p2RGB);
 			}
 			convert_frame_to_message(mRGB, 10, msg);
-			// cv::imshow("usb", mRGB);
+			cv::imshow("usb", mRGB);
 		}
 		else
 		{
@@ -319,12 +319,21 @@ void new_sample(GstElement *sink, CustomData *data)
 			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
 								CV_8UC1, (void *)map.data);
 			convert_frame_to_message(t, 10, msg);
-			//cv::imshow("usb", t);
+			// cv::imshow("usb", t);
 		}
-		//cv::waitKey(1);
+		cv::waitKey(1);
+
+		int secs = data->_timestamp / 1000;
 
 		// TODO: add frame_id
-		data->image_pub_->publish(msg);
+		msg->header.stamp.sec = secs;
+		msg->header.stamp.nanosec = data->_timestamp * 1000;
+		std::cout << secs << " -- " << data->_timestamp << std::endl;
+		
+		try 
+		{
+			data->image_pub_->publish(*msg);
+		} catch (std::exception & ex) {}
 
 		gst_buffer_unmap(buffer, &map);
 		gst_sample_unref(sample);

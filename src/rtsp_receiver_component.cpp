@@ -3,32 +3,23 @@
 namespace ros2_videostreamer
 {
 	RtspReceiverNode::RtspReceiverNode()
-		: Node("rtsp", "", true)
+		: Node("rtsp")
 	{
 		param_switch_service_name_ = "switch_on";
-        param_rtsp_uri_ = "rtsp://admin:admin@192.168.1.108:554/cam/realmonitor?channel=1&subtype=2";
+        param_rtsp_uri_ = "rtsp://192.168.1.21:554/live";
         param_rtsp_uri_topic_ = "rtsp_uri";
 
 		this->switch_on_ = true;
 
-        this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
-        this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
+        // this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
+        // this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
 
-        image_pub_qos_profile_ = rmw_qos_profile_default;
-        switch_qos_profile_ = rmw_qos_profile_default;
-
-		switch_qos_profile_.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-        switch_qos_profile_.depth = 10;
-        switch_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-
-
-		image_pub_qos_profile_.history=RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-		image_pub_qos_profile_.depth = 10;
-		image_pub_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-		//image_pub_qos_profile_.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+        auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+        auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+        // auto switch_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-            "/image_raw", image_pub_qos_profile_);
+            "/image_raw", image_pub_qos_profile);
 
 		this->receiver_.data._height = 720;
 		this->receiver_.data._width = 1280;
@@ -37,13 +28,13 @@ namespace ros2_videostreamer
 		this->uri_ = this->param_rtsp_uri_;
 		this->receiver_.setUri(this->uri_);
 
+        auto switch_cb = std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
         switch_service_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_name_, std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1,
-                                            std::placeholders::_2,std::placeholders::_3),switch_qos_profile_);
+            param_switch_service_name_, switch_cb);
             
+        auto rtsp_cb = std::bind(&RtspReceiverNode::topic_rtsp_uri_callback_shared, this, std::placeholders::_1);
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
-            param_rtsp_uri_topic_, std::bind(&RtspReceiverNode::topic_rtsp_uri_callback_shared, this, std::placeholders::_1),
-                                    switch_qos_profile_);
+            param_rtsp_uri_topic_, image_sub_qos_profile, rtsp_cb);
 
         if(switch_on_)
         {

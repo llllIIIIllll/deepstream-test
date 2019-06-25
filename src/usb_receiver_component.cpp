@@ -3,14 +3,14 @@
 namespace ros2_videostreamer
 {
 	UsbReceiverNode::UsbReceiverNode()
-		: Node("usb", "", true)
+		: Node("usb")
 	{
         param_switch_service_name_ = "/usb_node/switch_on";
 		this->switch_on_ = true;
         param_usb_uri_ = "/dev/video0";
 
-        this->get_parameter_or("param_usb_uri", param_usb_uri_,param_usb_uri_);
-        this->get_parameter_or("param_camera_info", param_camera_info_, param_camera_info_);
+        // this->get_parameter_or("param_usb_uri", param_usb_uri_,param_usb_uri_);
+        // this->get_parameter_or("param_camera_info", param_camera_info_, param_camera_info_);
 
         {
             // parse camera_info
@@ -20,23 +20,14 @@ namespace ros2_videostreamer
                 camera_info_message_.push_back(k);
         }
 
-        image_pub_qos_profile_ = rmw_qos_profile_default;
-        switch_qos_profile_ = rmw_qos_profile_default;
-		
-		image_pub_qos_profile_.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-        image_pub_qos_profile_.depth = 10;
-        image_pub_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-        
-		switch_qos_profile_.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-        switch_qos_profile_.depth = 10;
-        switch_qos_profile_.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-
+        auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+        // auto switch_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
-            "image_raw", image_pub_qos_profile_);
+            "image_raw", image_pub_qos_profile);
 
         camera_info_pub_ = this->create_publisher<sensor_msgs::msg::CameraInfo>(
-            "camera_info", image_pub_qos_profile_);
+            "camera_info", image_pub_qos_profile);
 
         auto timer_callback =
             [this]() -> void {
@@ -50,7 +41,9 @@ namespace ros2_videostreamer
                 this->camera_info_pub_->publish(message);
         };
 
-        timer_ = this->create_wall_timer(500ms, timer_callback);
+        timer_ = this->create_wall_timer(std::chrono::microseconds(500), timer_callback);
+        // cancel immediately to prevent it running the first time.
+        timer_->cancel();
 
 		this->receiver_.data.image_pub_ = image_pub_;
         this->uri_ = param_usb_uri_;
@@ -62,7 +55,7 @@ namespace ros2_videostreamer
 		this->receiver_.set_fps(30);
 
         switch_service_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_name_, std::bind(&UsbReceiverNode::switch_service_callback, this, std::placeholders::_1,std::placeholders::_2,std::placeholders::_3),switch_qos_profile_);
+            param_switch_service_name_, std::bind(&UsbReceiverNode::switch_service_callback, this, std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
 
         if(switch_on_)
         {
