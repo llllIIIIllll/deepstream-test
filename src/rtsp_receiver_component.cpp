@@ -1,17 +1,25 @@
 #include "rtsp_receiver_component.h"
-
+#define NODE_NAME "rtsp"
+#define NAME_SPACE ""
 namespace ros2_videostreamer
 {
 	RtspReceiverNode::RtspReceiverNode()
-		: Node("rtsp")
+		:Node(NODE_NAME,
+        NAME_SPACE,
+        rclcpp::NodeOptions(
+            rclcpp::NodeOptions()
+            .allow_undeclared_parameters(true)
+            .automatically_declare_parameters_from_overrides(true)
+            )
+        )
 	{
 		param_switch_service_name_ = "switch_on";
-        param_rtsp_uri_ = "rtsp://192.168.1.21:554/live";
+        param_rtsp_uri_ = "rtsp://192.168.1.21:554/ch4";
         param_rtsp_uri_topic_ = "rtsp_uri";
 
 		this->switch_on_ = true;
 
-        // this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
+        this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
         // this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
 
         auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();

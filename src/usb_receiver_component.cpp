@@ -1,9 +1,17 @@
 #include "usb_receiver_component.h"
-
+#define NODE_NAME "usb"
+#define NAME_SPACE ""
 namespace ros2_videostreamer
 {
 	UsbReceiverNode::UsbReceiverNode()
-		: Node("usb")
+		:Node(NODE_NAME,
+        NAME_SPACE,
+        rclcpp::NodeOptions(
+            rclcpp::NodeOptions()
+            .allow_undeclared_parameters(true)
+            .automatically_declare_parameters_from_overrides(true)
+            )
+        )
 	{
         param_switch_service_name_ = "/usb_node/switch_on";
 		this->switch_on_ = true;
