@@ -14,10 +14,13 @@ class Receiver {
   ~Receiver();
 
   virtual void start();
+  virtual bool getStreamAlive();
+  
   void stop();
   void setUri(const std::string uri);
   void setDisplay(bool display);
   void setVerbose(bool verbose);
+  void setStreamAlive(bool streamalive);
   GstBus *getBus();
 
   void _handleEOS();
@@ -35,6 +38,7 @@ class Receiver {
   std::string _uri;
   bool        _image_display;
   bool        _verbose;
+  bool        _stream_alive;
 
   static gboolean _onBusMessage(GstBus *bus, GstMessage *message,
                                 gpointer user_data);

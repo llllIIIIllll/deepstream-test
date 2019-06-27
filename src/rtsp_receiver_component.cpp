@@ -13,11 +13,14 @@ namespace ros2_videostreamer
             )
         )
 	{
+        this->receiver_  = std::make_shared<RtspReceiver>();
+        
 		param_switch_service_name_ = "switch_on";
         param_rtsp_uri_ = "rtsp://192.168.1.21:554/ch4";
         param_rtsp_uri_topic_ = "rtsp_uri";
 
 		this->switch_on_ = true;
+		this->stream_restart_ = false;
         this->param_image_display_ = true;
         this->param_verbose = true;
 
@@ -33,15 +36,6 @@ namespace ros2_videostreamer
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
             "/image_raw", image_pub_qos_profile);
 
-		this->receiver_.data._height = 720;
-		this->receiver_.data._width = 1280;
-		this->receiver_.data.image_pub_ = image_pub_;
-		//this->uri_ = "rtsp://192.168.1.242:554/live";
-		this->uri_ = this->param_rtsp_uri_;
-		this->receiver_.setDisplay(param_image_display_);
-		this->receiver_.setVerbose(param_verbose);
-		this->receiver_.setUri(this->uri_);
-
         auto switch_cb = std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
         switch_service_ = this->create_service<std_srvs::srv::SetBool>(
             param_switch_service_name_, switch_cb);
@@ -50,10 +44,9 @@ namespace ros2_videostreamer
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
             param_rtsp_uri_topic_, image_sub_qos_profile, rtsp_cb);
 
-        if(switch_on_)
-        {
-			this->receiver_.start();
-        }
+        this->timer_check_alive_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&RtspReceiverNode::timer_check_alive_callback, this));
+        // this->timer_check_alive_->cancel();
+
 	}
 
     void RtspReceiverNode::switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -63,15 +56,17 @@ namespace ros2_videostreamer
         // RCLCPP_INFO(this->get_logger(), "in switch CB");
         if(switch_on_ && !request->data )
         {
-			switch_on_ = false;
-			this->receiver_.stop();
+            RCLCPP_INFO(this->get_logger(), "switch off");
+            this->stop_stream();
         }
         else if(!switch_on_ && request->data)
         {
-			switch_on_ = true;
-			this->receiver_.start();
+            RCLCPP_INFO(this->get_logger(), "switch on");
+			this->start_stream();
         }
-
+        
+        switch_on_ = request->data;
+        
         RESERVE(request_header);
         RESERVE(request);
         RESERVE(response);
@@ -79,14 +74,14 @@ namespace ros2_videostreamer
     
     void RtspReceiverNode::topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg)
     {
+        RCLCPP_INFO(this->get_logger(), "stream running : %s", msg->data);
         if (this->param_rtsp_uri_ != msg->data)
         {
             this->param_rtsp_uri_ = msg->data;
             if (switch_on_)
             {
-    			this->receiver_.stop();
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                this->receiver_.start();
+                this->stop_stream();
+                this->start_stream();
             }
         }
 
@@ -94,4 +89,54 @@ namespace ros2_videostreamer
 
 	RtspReceiverNode::~RtspReceiverNode()
 	{}
+
+    void RtspReceiverNode::start_stream()
+    {        
+        RCLCPP_INFO(this->get_logger(), "start stream");
+        if (this->receiver_ == NULL)
+        {
+            this->receiver_  = std::make_shared<RtspReceiver>();
+        }
+        this->receiver_->data.image_pub_ = image_pub_;
+        this->receiver_->setDisplay(param_image_display_);
+        this->receiver_->setVerbose(param_verbose);
+        this->receiver_->setUri(param_rtsp_uri_);
+        this->receiver_->setStreamAlive(false);
+        
+        this->receiver_->start();
+    }
+    
+    void RtspReceiverNode::stop_stream()
+    {
+        RCLCPP_INFO(this->get_logger(), "stop stream");
+        if (this->receiver_ != NULL)
+        {
+            RCLCPP_INFO(this->get_logger(), "stop running %d", this->receiver_->_running);
+            if (this->receiver_->_running)
+                this->receiver_->stop();
+            this->receiver_.reset();
+            this->receiver_ = NULL;
+        }
+    }
+	
+    void RtspReceiverNode::timer_check_alive_callback()
+    {
+        if (!this->switch_on_ || this->receiver_ == NULL)
+            return;
+        else if (this->switch_on_ && this->receiver_ == NULL)
+            this->start_stream();
+
+        this->stream_alive_ = this->receiver_->getStreamAlive();
+        
+        if (!this->stream_alive_)
+        {
+            this->stop_stream();
+            this->start_stream();
+        }
+        else 
+        {
+            this->receiver_->setStreamAlive(false);
+        }
+    }
+    
 };

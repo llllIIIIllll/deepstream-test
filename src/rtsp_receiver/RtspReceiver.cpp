@@ -237,6 +237,13 @@ void RtspReceiver::start()
 	_starting = false;
 }
 
+bool RtspReceiver::getStreamAlive()
+{
+	bool tmp = this->data._stream_alive;
+	this->data._stream_alive = false;
+	return tmp;
+}
+
 void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data)
 {
 	RESERVE(sink);
@@ -342,6 +349,7 @@ void new_sample(GstElement *sink, CustomData *data)
 		
 		try 
 		{
+			data->_stream_alive = true;
 			data->image_pub_->publish(*msg);
 		} catch (std::exception & ex) {}
 

@@ -77,6 +77,10 @@ void Receiver::setDisplay(bool display) { _image_display = display; }
 
 void Receiver::setVerbose(bool verbose) { _verbose = verbose; }
 
+void Receiver::setStreamAlive(bool streamalive) { _stream_alive = streamalive; }
+
+bool Receiver::getStreamAlive() { return _stream_alive; }
+
 gboolean Receiver::_onBusMessage(GstBus* bus, GstMessage* msg, gpointer data) {
   assert(msg != NULL && data != NULL);
   Receiver* pThis = (Receiver*)data;

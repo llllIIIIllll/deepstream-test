@@ -35,6 +35,7 @@ typedef struct _CustomData
 	int _fps;
 	bool _image_display;
 	bool _verbose;
+	bool _stream_alive;
 
 	std::string _format;
 	uint32_t _timestamp;
@@ -72,6 +73,7 @@ public:
 	GstElement *pipeline;
 
 	void start();
+	bool getStreamAlive();
 
 	void set_resulation(int width, int height)
 	{

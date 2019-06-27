@@ -21,18 +21,28 @@ namespace ros2_videostreamer
                             const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
                             const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
         void topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg);
+
+        void timer_check_alive_callback();
+        void timer_stream_controller_callback();
         
-        RtspReceiver                            receiver_;
+        void start_stream();
+        void stop_stream();
+        
+        std::shared_ptr<RtspReceiver>           receiver_;
         std::string                             uri_;
 
         std::string                             param_switch_service_name_;
         std::string                             param_rtsp_uri_;
         std::string                             param_rtsp_uri_topic_;
 
+        bool                                    stream_alive_;
+        bool                                    stream_restart_;
         bool                                    switch_on_;
         bool                                    param_image_display_;
         bool                                    param_verbose;
 
+        rclcpp::TimerBase::SharedPtr                                                timer_check_alive_;
+        rclcpp::TimerBase::SharedPtr                                                timer_stream_controller_;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr                      rtsp_uri_;  
         rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
