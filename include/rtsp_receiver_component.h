@@ -30,6 +30,8 @@ namespace ros2_videostreamer
         std::string                             param_rtsp_uri_topic_;
 
         bool                                    switch_on_;
+        bool                                    param_image_display_;
+        bool                                    param_verbose;
 
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr                      rtsp_uri_;  

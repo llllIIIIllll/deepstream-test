@@ -17,8 +17,12 @@ namespace ros2_videostreamer
 		this->switch_on_ = true;
         param_usb_uri_ = "/dev/video0";
 
-        // this->get_parameter_or("param_usb_uri", param_usb_uri_,param_usb_uri_);
-        // this->get_parameter_or("param_camera_info", param_camera_info_, param_camera_info_);
+        this->param_image_display_ = true;
+        this->param_verbose = true;
+        
+        this->get_parameter_or("param_usb_uri",param_usb_uri_,param_usb_uri_);
+        this->get_parameter_or("display", param_image_display_, param_image_display_);
+        this->get_parameter_or("verbose", param_verbose, param_verbose);
 
         {
             // parse camera_info
@@ -56,6 +60,8 @@ namespace ros2_videostreamer
 		this->receiver_.data.image_pub_ = image_pub_;
         this->uri_ = param_usb_uri_;
 		this->receiver_.setUri(this->uri_);
+        this->receiver_.setDisplay(param_image_display_);
+		this->receiver_.setVerbose(param_verbose);
 	
 
 		this->receiver_.set_resulation(640, 480);

@@ -18,9 +18,13 @@ namespace ros2_videostreamer
         param_rtsp_uri_topic_ = "rtsp_uri";
 
 		this->switch_on_ = true;
+        this->param_image_display_ = true;
+        this->param_verbose = true;
 
         this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
-        // this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
+        this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
+        this->get_parameter_or("display", param_image_display_, param_image_display_);
+        this->get_parameter_or("verbose", param_verbose, param_verbose);
 
         auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
         auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
@@ -34,6 +38,8 @@ namespace ros2_videostreamer
 		this->receiver_.data.image_pub_ = image_pub_;
 		//this->uri_ = "rtsp://192.168.1.242:554/live";
 		this->uri_ = this->param_rtsp_uri_;
+		this->receiver_.setDisplay(param_image_display_);
+		this->receiver_.setVerbose(param_verbose);
 		this->receiver_.setUri(this->uri_);
 
         auto switch_cb = std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
@@ -79,7 +85,7 @@ namespace ros2_videostreamer
             if (switch_on_)
             {
     			this->receiver_.stop();
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 this->receiver_.start();
             }
         }

@@ -30,7 +30,10 @@ namespace ros2_videostreamer
         std::string                             param_switch_service_name_;
         std::string                             param_usb_uri_;
         std::string                             param_camera_info_;
-        bool                                    switch_on_;
+        bool                                    switch_on_;        
+        bool                                    param_image_display_;
+        bool                                    param_verbose;
+
         std::vector<double>                     camera_info_message_;
 
         rclcpp::TimerBase::SharedPtr                                                timer_;

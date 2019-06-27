@@ -109,6 +109,9 @@ void UsbReceiver::start()
 	GstMessage *msg;
 	GstStateChangeReturn ret;
 
+	data._image_display = this->_image_display;
+	data._verbose = this->_verbose;
+
 	RESERVE(pipelineUp);
 	RESERVE(msg);
 	do
@@ -241,8 +244,11 @@ void new_sample(GstElement *sink, CustomData *data)
 
 		sensor_msgs::msg::Image::SharedPtr msg(new sensor_msgs::msg::Image());
 
-		cv::imshow("usb", mRGB);
-		cv::waitKey(1);
+		if (data->_image_display)
+		{
+			cv::imshow("usb", mRGB);
+			cv::waitKey(1);
+		}
 
 		convert_frame_to_message(mRGB, 0, msg);
 

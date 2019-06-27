@@ -118,6 +118,9 @@ void RtspReceiver::start()
 	RESERVE(pipelineUp);
 	RESERVE(msg);
 
+	data._image_display = this->_image_display;
+	data._verbose = this->_verbose;
+
 	do
 	{
 		// TODO: make code consice
@@ -311,7 +314,6 @@ void new_sample(GstElement *sink, CustomData *data)
 				cvtColor(t, mRGB, CV_YUV420p2RGB);
 			}
 			convert_frame_to_message(mRGB, 10, msg);
-			cv::imshow("usb", mRGB);
 		}
 		else
 		{
@@ -321,14 +323,22 @@ void new_sample(GstElement *sink, CustomData *data)
 			convert_frame_to_message(t, 10, msg);
 			// cv::imshow("usb", t);
 		}
-		cv::waitKey(1);
+		if (use_rgb && data->_image_display)
+		{
+			cv::imshow("usb", mRGB);
+			cv::waitKey(1);
+		}
 
 		int secs = data->_timestamp / 1000;
 
 		// TODO: add frame_id
 		msg->header.stamp.sec = secs;
 		msg->header.stamp.nanosec = data->_timestamp * 1000;
-		std::cout << secs << " -- " << data->_timestamp << std::endl;
+		
+		if (data->_verbose)
+		{
+			std::cout << secs << " -- " << data->_timestamp << std::endl;
+		}
 		
 		try 
 		{

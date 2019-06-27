@@ -27,6 +27,8 @@ typedef struct _CustomData
 	int _height;
 	int _width;
 	int _fps;
+	bool _image_display;
+	bool _verbose;
 
 	std::string _format;
 

@@ -16,6 +16,8 @@ class Receiver {
   virtual void start();
   void stop();
   void setUri(const std::string uri);
+  void setDisplay(bool display);
+  void setVerbose(bool verbose);
   GstBus *getBus();
 
   void _handleEOS();
@@ -31,6 +33,8 @@ class Receiver {
   GstElement *_videoSink;
 
   std::string _uri;
+  bool        _image_display;
+  bool        _verbose;
 
   static gboolean _onBusMessage(GstBus *bus, GstMessage *message,
                                 gpointer user_data);

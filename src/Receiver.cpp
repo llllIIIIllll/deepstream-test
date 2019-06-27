@@ -73,6 +73,10 @@ void Receiver::_handleEOS() {
 
 void Receiver::setUri(const std::string uri) { _uri = uri; }
 
+void Receiver::setDisplay(bool display) { _image_display = display; }
+
+void Receiver::setVerbose(bool verbose) { _verbose = verbose; }
+
 gboolean Receiver::_onBusMessage(GstBus* bus, GstMessage* msg, gpointer data) {
   assert(msg != NULL && data != NULL);
   Receiver* pThis = (Receiver*)data;
