@@ -88,11 +88,21 @@ static void cb_new_rtspsrc_pad(GstElement *element,GstPad*pad,gpointer  data)
 
 RtspReceiver::RtspReceiver() : Receiver()
 {
+	g_print("\nRtspReceiver::RtspReceiver()\n");
 	data.host_cpu_ = (std::string)CMAKE_HOST_SYSTEM_PROCESSOR;
 	std::cout << data.host_cpu_ << std::endl;
 }
 
-RtspReceiver::~RtspReceiver() {}
+RtspReceiver::~RtspReceiver() { 
+	stop();
+	_running = false;
+	_starting = false;
+	_stopping = false;
+	_tee = nullptr;
+	_pipeline = nullptr;
+	_videoSink = nullptr;
+	g_print("\nRtspReceiver::~RtspReceiver()\n");
+ }
 
 void RtspReceiver::start()
 {

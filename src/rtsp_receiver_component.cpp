@@ -92,11 +92,6 @@ namespace ros2_videostreamer
 
     void RtspReceiverNode::start_stream()
     {        
-        RCLCPP_INFO(this->get_logger(), "start stream");
-        if (this->receiver_ == NULL)
-        {
-            this->receiver_  = std::make_shared<RtspReceiver>();
-        }
         this->receiver_->data.image_pub_ = image_pub_;
         this->receiver_->setDisplay(param_image_display_);
         this->receiver_->setVerbose(param_verbose);
@@ -108,15 +103,7 @@ namespace ros2_videostreamer
     
     void RtspReceiverNode::stop_stream()
     {
-        RCLCPP_INFO(this->get_logger(), "stop stream");
-        if (this->receiver_ != NULL)
-        {
-            RCLCPP_INFO(this->get_logger(), "stop running %d", this->receiver_->_running);
-            if (this->receiver_->_running)
-                this->receiver_->stop();
-            this->receiver_.reset();
-            this->receiver_ = NULL;
-        }
+        this->receiver_->stop();
     }
 	
     void RtspReceiverNode::timer_check_alive_callback()
