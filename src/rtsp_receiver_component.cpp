@@ -19,15 +19,18 @@ namespace ros2_videostreamer
         param_rtsp_uri_ = "rtsp://192.168.1.21:554/ch4";
         param_rtsp_uri_topic_ = "rtsp_uri";
 
-		this->switch_on_ = true;
 		this->stream_restart_ = false;
         this->param_image_display_ = true;
-        this->param_verbose = true;
+        this->param_verbose_ = true;
+        this->param_auto_start_ = true;
 
         this->get_parameter_or("param_rtsp_uri", param_rtsp_uri_,param_rtsp_uri_);
         this->get_parameter_or("param_rtsp_uri_topic", param_rtsp_uri_topic_,param_rtsp_uri_topic_);
         this->get_parameter_or("display", param_image_display_, param_image_display_);
-        this->get_parameter_or("verbose", param_verbose, param_verbose);
+        this->get_parameter_or("verbose", param_verbose_, param_verbose_);
+        this->get_parameter_or("auto_start", param_auto_start_,param_auto_start_);
+        
+        this->switch_on_ = this->param_auto_start_;
 
         auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
         auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
@@ -94,7 +97,7 @@ namespace ros2_videostreamer
     {        
         this->receiver_->data.image_pub_ = image_pub_;
         this->receiver_->setDisplay(param_image_display_);
-        this->receiver_->setVerbose(param_verbose);
+        this->receiver_->setVerbose(param_verbose_);
         this->receiver_->setUri(param_rtsp_uri_);
         this->receiver_->setStreamAlive(false);
         
