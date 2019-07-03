@@ -350,7 +350,7 @@ void new_sample(GstElement *sink, CustomData *data)
 
 		// TODO: add frame_id
 		msg->header.stamp.sec = secs;
-		msg->header.stamp.nanosec = (data->_timestamp % 1000) * 1000;
+		msg->header.stamp.nanosec = (data->_timestamp % 1000) * 1000000;
 		
 		if (data->_verbose)
 		{
