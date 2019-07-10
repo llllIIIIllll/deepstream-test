@@ -38,9 +38,12 @@ namespace ros2_videostreamer
         bool                                    stream_alive_;
         bool                                    stream_restart_;
         bool                                    switch_on_;
+        bool                                    turn_on_or_off_;
         bool                                    param_image_display_;
         bool                                    param_verbose_;
         bool                                    param_auto_start_;
+        
+        std::chrono::system_clock::time_point   turn_off_count_start_;
 
         rclcpp::TimerBase::SharedPtr                                                timer_check_alive_;
         rclcpp::TimerBase::SharedPtr                                                timer_stream_controller_;

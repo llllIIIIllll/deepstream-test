@@ -31,6 +31,7 @@ namespace ros2_videostreamer
         this->get_parameter_or("auto_start", param_auto_start_,param_auto_start_);
         
         this->switch_on_ = this->param_auto_start_;
+        this->turn_on_or_off_ = this->param_auto_start_;
 
         auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
         auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
@@ -50,6 +51,7 @@ namespace ros2_videostreamer
         this->timer_check_alive_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&RtspReceiverNode::timer_check_alive_callback, this));
         // this->timer_check_alive_->cancel();
 
+        this->start_stream();
 	}
 
     void RtspReceiverNode::switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -57,18 +59,25 @@ namespace ros2_videostreamer
         const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
     {
         // RCLCPP_INFO(this->get_logger(), "in switch CB");
-        if(switch_on_ && !request->data )
+        static bool recount = true;
+        if (request->data)
+        {
+            recount = true;
+            RCLCPP_INFO(this->get_logger(), "switch on");
+        }
+        else
         {
             RCLCPP_INFO(this->get_logger(), "switch off");
-            this->stop_stream();
-        }
-        else if(!switch_on_ && request->data)
-        {
-            RCLCPP_INFO(this->get_logger(), "switch on");
-			this->start_stream();
         }
         
-        switch_on_ = request->data;
+        // if no switch on message coming, turn off start time will remain at the first switch off message's time point
+        if(switch_on_ && !request->data && recount == true)
+        {
+            this->turn_off_count_start_ = std::chrono::system_clock::now();
+            recount = false;
+        }
+        
+        this->turn_on_or_off_ = request->data;
         
         RESERVE(request_header);
         RESERVE(request);
@@ -111,16 +120,38 @@ namespace ros2_videostreamer
 	
     void RtspReceiverNode::timer_check_alive_callback()
     {
-        if (!this->switch_on_ || this->receiver_ == NULL)
-            return;
-        else if (this->switch_on_ && this->receiver_ == NULL)
-            this->start_stream();
+        static bool stop_stream_only_once = true;
+        auto turn_off_count_end = std::chrono::system_clock::now();
 
+        // check turn on or on, if turn off triggered, it will be off in 5 minutes;
+        if (this->turn_on_or_off_)
+        {
+            this->switch_on_ = true;
+        }
+        else if (std::chrono::duration_cast<std::chrono::duration<int>>
+                    (turn_off_count_end - this->turn_off_count_start_).count() > 10
+              )
+        {
+            this->switch_on_ = false;
+        }
+        
+        if (!this->switch_on_)
+        {
+            this->stream_alive_ = false;
+            this->stop_stream();
+            return;
+        }
+        
+        // switch is on, try to get stream
         this->stream_alive_ = this->receiver_->getStreamAlive();
         
-        if (!this->stream_alive_)
+        if (!this->stream_alive_ && stop_stream_only_once == true)
         {
             this->stop_stream();
+            this->start_stream();
+            stop_stream_only_once = false;
+        } else if (!this->stream_alive_ && stop_stream_only_once == false)
+        {
             this->start_stream();
         }
         else 
