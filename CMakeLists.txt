@@ -26,10 +26,12 @@ configure_file(
 #####################
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(perception_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
@@ -62,10 +64,12 @@ function(custome_executable subfolder target addition)
 		"rclcpp"
 		"rcl"
 		"rclcpp"
+		"rclcpp_action"
 		"std_msgs"
 		"std_srvs"
 		"sensor_msgs"
 		"geometry_msgs"  
+		"perception_msgs"
 	)
 	install(TARGETS ${target}
 	DESTINATION lib/${PROJECT_NAME})

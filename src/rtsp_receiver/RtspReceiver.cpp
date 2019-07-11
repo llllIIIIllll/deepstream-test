@@ -95,6 +95,7 @@ RtspReceiver::RtspReceiver() : Receiver()
 
 RtspReceiver::~RtspReceiver() { 
 	stop();
+	_stream_alive = false;
 	_running = false;
 	_starting = false;
 	_stopping = false;

@@ -1,4 +1,6 @@
 #include "rtsp_receiver_component.h"
+#include "rclcpp_action/rclcpp_action.hpp"
+
 #define NODE_NAME "rtsp"
 #define NAME_SPACE ""
 namespace ros2_videostreamer
@@ -13,6 +15,8 @@ namespace ros2_videostreamer
             )
         )
 	{
+        using namespace std::placeholders;
+        
         this->receiver_  = std::make_shared<RtspReceiver>();
         
 		param_switch_service_name_ = "switch_on";
@@ -50,6 +54,18 @@ namespace ros2_videostreamer
 
         this->timer_check_alive_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&RtspReceiverNode::timer_check_alive_callback, this));
         // this->timer_check_alive_->cancel();
+
+
+        this->action_server_ = rclcpp_action::create_server<Switch>(
+            this->get_node_base_interface(),
+            this->get_node_clock_interface(),
+            this->get_node_logging_interface(),
+            this->get_node_waitables_interface(),
+            "switch",
+            std::bind(&RtspReceiverNode::handle_goal, this, _1, _2),
+            std::bind(&RtspReceiverNode::handle_cancel, this, _1),
+            std::bind(&RtspReceiverNode::handle_accepted, this, _1)
+        );
 
         this->start_stream();
 	}
@@ -148,10 +164,10 @@ namespace ros2_videostreamer
         if (!this->stream_alive_ && stop_stream_only_once == true)
         {
             this->stop_stream();
-            this->start_stream();
             stop_stream_only_once = false;
         } else if (!this->stream_alive_ && stop_stream_only_once == false)
         {
+            RCLCPP_INFO(this->get_logger(), "try to get stream video");
             this->start_stream();
         }
         else 
@@ -159,5 +175,84 @@ namespace ros2_videostreamer
             this->receiver_->setStreamAlive(false);
         }
     }
+    
+    rclcpp_action::GoalResponse RtspReceiverNode::handle_goal (const rclcpp_action::GoalUUID & uuid,
+        std::shared_ptr<const Switch::Goal> goal)
+    {
+        RCLCPP_INFO(this->get_logger(), "Received goal request with switch on: %d", goal->switch_on);
+        (void)uuid;
+        // reject
+        if (goal->switch_on == this->receiver_->getStreamAlive()) 
+        {
+            return rclcpp_action::GoalResponse::REJECT;
+        }
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+    }
+    
+    void RtspReceiverNode::execute(const std::shared_ptr<GoalHandleSwitch> goal_handle)
+    {
+        RCLCPP_INFO(this->get_logger(), "Executing goal");
+        rclcpp::Rate loop_rate(1);
+        const auto goal = goal_handle->get_goal();
+        auto feedback = std::make_shared<Switch::Feedback>();
+        auto & stream_running = feedback->stream_running;
+        auto & image_publish = feedback->image_publish;
+        auto result = std::make_shared<Switch::Result>();
+        
+        this->turn_on_or_off_ = goal->switch_on;
+        this->turn_off_count_start_ = std::chrono::system_clock::now();
+
+        for (int i = 0; i < 100; ++i)
+        {
+            if (goal_handle->is_canceling()) 
+            {
+                this->turn_on_or_off_  =  !goal->switch_on;
+                result->switch_state = this->receiver_->getStreamAlive();
+                goal_handle->canceled(result);
+                RCLCPP_INFO(this->get_logger(), "Goal Canceled");
+                return;
+            }
+            stream_running = this->receiver_->_running;
+            image_publish = this->receiver_->getStreamAlive();
+            
+            goal_handle->publish_feedback(feedback);
+            RCLCPP_INFO(this->get_logger(), "Publish Feedback");
+            
+            if (goal->switch_on && image_publish)
+            {
+                // turn on success
+                break;
+            }
+            else if (!goal->switch_on && !stream_running)
+            {
+                // turn off success
+                break;
+            }
+            loop_rate.sleep();
+        }
+        
+        // Check if goal is done
+        if (rclcpp::ok()) 
+        {
+            result->switch_state = this->stream_alive_;
+            goal_handle->succeed(result);
+            RCLCPP_INFO(this->get_logger(), "Goal Succeeded");
+        }
+    }
+          
+    void RtspReceiverNode::handle_accepted(const std::shared_ptr<GoalHandleSwitch> goal_handle)
+    {
+        using namespace std::placeholders;
+        // this needs to return quickly to avoid blocking the executor, so spin up a new thread
+        std::thread{std::bind(&RtspReceiverNode::execute, this, _1), goal_handle}.detach();
+    }
+    
+    rclcpp_action::CancelResponse RtspReceiverNode::handle_cancel(const std::shared_ptr<GoalHandleSwitch> goal_handle)
+    {
+        RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+        (void)goal_handle;
+        return rclcpp_action::CancelResponse::ACCEPT;
+    }
+
     
 };
