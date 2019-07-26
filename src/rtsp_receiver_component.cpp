@@ -67,7 +67,10 @@ namespace ros2_videostreamer
             std::bind(&RtspReceiverNode::handle_accepted, this, _1)
         );
 
-        this->start_stream();
+        if (this->param_auto_start_)
+        {
+            this->start_stream();
+        }
 	}
 
     void RtspReceiverNode::switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
