@@ -136,7 +136,7 @@ namespace ros2_videostreamer
 	
     void RtspReceiverNode::timer_check_alive_callback()
     {
-        static bool stop_stream_only_once = true;
+        static int restart_count = 0;
         auto turn_off_count_end = std::chrono::system_clock::now();
 
         // check turn on or on, if turn off triggered, it will be off in 5 minutes;
@@ -161,13 +161,14 @@ namespace ros2_videostreamer
         // switch is on, try to get stream
         this->stream_alive_ = this->receiver_->getStreamAlive();
         
-        if (!this->stream_alive_ && stop_stream_only_once == true)
+        if (!this->stream_alive_ && restart_count >= 10)
         {
             this->stop_stream();
-            stop_stream_only_once = false;
-        } else if (!this->stream_alive_ && stop_stream_only_once == false)
+            restart_count = 0;
+        } else if (!this->stream_alive_)
         {
             RCLCPP_INFO(this->get_logger(), "try to get stream video");
+            restart_count++;
             this->start_stream();
         }
         else 
