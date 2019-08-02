@@ -21,17 +21,17 @@ state Gstreamer {
     appsink      --> [*]
 }
 
-Gstreamer -down-> stop_stream
+Gstreamer --> stop_stream
 
 fork_state --> switch_service_callback
 
 state switch_service_callback {
     request_data    --> turn_on_or_off_
     turn_on_or_off_ --> turn_off_count_start_: when turn off start count 
-    turn_on_or_off_ --> timer_check_alive_callback
     turn_on_or_off_ : on will directly trigger start_stream\noff depend on count 
     turn_off_count_start_: count greater than 3 will trigger stop_stream
 }
+switch_service_callback --> timer_check_alive_callback
 
 fork_state --> timer_check_alive_callback: call per serond
 state timer_check_alive_callback {
@@ -46,8 +46,15 @@ state timer_check_alive_callback {
     restart: call stop_stream first then start_stream
 }
 
+fork_state -right-> action_server_
+state action_server_ {
+    handle_goal     --> goal
+    handle_cancel   --> goal
+    handle_accepted --> goal
+} 
+
+
 state join_state <<join>>
-stop_stream                --> join_state
 switch_service_callback    --> join_state
 timer_check_alive_callback --> join_state
 join_state                 --> End
