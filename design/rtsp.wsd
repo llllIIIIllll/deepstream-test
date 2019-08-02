@@ -1,0 +1,56 @@
+@startuml
+
+[*] --> init
+
+init --> start_stream: when param_auto_start_ on
+
+state fork_state <<fork>>
+init --> fork_state
+start_stream --> Gstreamer
+state Gstreamer {
+    [*]          --> rtspsrc
+    rtspsrc      --> rtph265depay
+    rtph265depay --> identity
+    identity: add timestamp to msg
+    identity     --> omxh265dec: tx2(arm64)
+    identity     --> avdec_h265: pc(amd64)
+    omxh265dec   --> appsink
+    avdec_h265   --> appsink
+    appsink: publish msg
+    appsink      -up-> timer_check_alive_callback: get image?
+    appsink      --> [*]
+}
+
+Gstreamer -down-> stop_stream
+
+fork_state --> switch_service_callback
+
+state switch_service_callback {
+    request_data    --> turn_on_or_off_
+    turn_on_or_off_ --> turn_off_count_start_: when turn off start count 
+    turn_on_or_off_ --> timer_check_alive_callback
+    turn_on_or_off_ : on will directly trigger start_stream\noff depend on count 
+    turn_off_count_start_: count greater than 3 will trigger stop_stream
+}
+
+fork_state --> timer_check_alive_callback: call per serond
+state timer_check_alive_callback {
+    check_turn_on_or_off --> stop: off
+    check_turn_off_count --> stop: greater than 3
+    check_image_alive    --> stop: can't get image
+    check_turn_on_or_off --> start: on
+    check_image_alive    -up-> restart: can't get image
+    check_turn_on_or_off -up-> restart: on
+    stop: call stop_stream
+    start: call start_stream
+    restart: call stop_stream first then start_stream
+}
+
+state join_state <<join>>
+stop_stream                --> join_state
+switch_service_callback    --> join_state
+timer_check_alive_callback --> join_state
+join_state                 --> End
+End                     --> [*]
+
+@enduml
