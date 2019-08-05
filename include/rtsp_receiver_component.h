@@ -22,7 +22,10 @@ namespace ros2_videostreamer
 
     private:
 
-        void switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+        void switch_service_tracker_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+                            const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+                            const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+        void switch_service_detector_callback(const std::shared_ptr<rmw_request_id_t> request_header,
                             const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
                             const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
         void topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg);
@@ -43,7 +46,8 @@ namespace ros2_videostreamer
         std::shared_ptr<RtspReceiver>           receiver_;
         std::string                             uri_;
 
-        std::string                             param_switch_service_name_;
+        std::string                             param_switch_service_tracker_name_;
+        std::string                             param_switch_service_detector_name_;
         std::string                             param_rtsp_uri_;
         std::string                             param_rtsp_uri_topic_;
 
@@ -51,6 +55,8 @@ namespace ros2_videostreamer
         bool                                    stream_restart_;
         bool                                    switch_on_;
         bool                                    turn_on_or_off_;
+        bool                                    tracker_turn_on_or_off_;
+        bool                                    detector_turn_on_or_off_;
         bool                                    param_image_display_;
         bool                                    param_verbose_;
         bool                                    param_auto_start_;
@@ -61,7 +67,8 @@ namespace ros2_videostreamer
         rclcpp::TimerBase::SharedPtr                                                timer_stream_controller_;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
         rclcpp::Subscription<std_msgs::msg::String>::SharedPtr                      rtsp_uri_;  
-        rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
+        rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_tracker_;
+        rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_detector_;
         rclcpp_action::Server<Switch>::SharedPtr                                    action_server_;
     };
 

@@ -19,7 +19,8 @@ namespace ros2_videostreamer
         
         this->receiver_  = std::make_shared<RtspReceiver>();
         
-		param_switch_service_name_ = "switch_on";
+		param_switch_service_tracker_name_ = "/tld_kcf_tracker/switch_on";
+		param_switch_service_detector_name_ = "/detector/switch";
         param_rtsp_uri_ = "rtsp://192.168.1.21:554/ch4";
         param_rtsp_uri_topic_ = "rtsp_uri";
 
@@ -44,9 +45,15 @@ namespace ros2_videostreamer
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
             "/image_raw", image_pub_qos_profile);
 
-        auto switch_cb = std::bind(&RtspReceiverNode::switch_service_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
-        switch_service_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_name_, switch_cb);
+        // tracker switch
+        auto switch_tracker_cb = std::bind(&RtspReceiverNode::switch_service_tracker_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
+        switch_service_tracker_ = this->create_service<std_srvs::srv::SetBool>(
+            param_switch_service_tracker_name_, switch_tracker_cb);
+            
+        // detector switch
+        auto switch_detector_cb = std::bind(&RtspReceiverNode::switch_service_detector_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
+        switch_service_detector_ = this->create_service<std_srvs::srv::SetBool>(
+            param_switch_service_detector_name_, switch_detector_cb);
             
         auto rtsp_cb = std::bind(&RtspReceiverNode::topic_rtsp_uri_callback_shared, this, std::placeholders::_1);
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
@@ -73,7 +80,7 @@ namespace ros2_videostreamer
         }
 	}
 
-    void RtspReceiverNode::switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+    void RtspReceiverNode::switch_service_tracker_callback(const std::shared_ptr<rmw_request_id_t> request_header,
         const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
         const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
     {
@@ -96,13 +103,43 @@ namespace ros2_videostreamer
             recount = false;
         }
         
-        this->turn_on_or_off_ = request->data;
+        this->tracker_turn_on_or_off_ = request->data;
         
         RESERVE(request_header);
         RESERVE(request);
         RESERVE(response);
     }
-    
+
+        void RtspReceiverNode::switch_service_detector_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+        const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+        const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+    {
+        // RCLCPP_INFO(this->get_logger(), "in switch CB");
+        static bool recount = true;
+        if (request->data)
+        {
+            recount = true;
+            RCLCPP_INFO(this->get_logger(), "switch on");
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "switch off");
+        }
+        
+        // if no switch on message coming, turn off start time will remain at the first switch off message's time point
+        if(switch_on_ && !request->data && recount == true)
+        {
+            this->turn_off_count_start_ = std::chrono::system_clock::now();
+            recount = false;
+        }
+        
+        this->detector_turn_on_or_off_ = request->data;
+        
+        RESERVE(request_header);
+        RESERVE(request);
+        RESERVE(response);
+    }
+
     void RtspReceiverNode::topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg)
     {
         RCLCPP_INFO(this->get_logger(), "stream running : %s", msg->data);
@@ -142,6 +179,9 @@ namespace ros2_videostreamer
         static int restart_count = 0;
         auto turn_off_count_end = std::chrono::system_clock::now();
 
+        // only both off turn_on_or_off_ will be off
+        this->turn_on_or_off_ = this->tracker_turn_on_or_off_ || this->detector_turn_on_or_off_;
+        
         // check turn on or on, if turn off triggered, it will be off in 5 minutes;
         if (this->turn_on_or_off_)
         {
