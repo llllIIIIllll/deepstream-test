@@ -26,7 +26,7 @@ configure_file(
 #####################
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
+# find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -64,7 +64,7 @@ function(custome_executable subfolder target addition)
 		"rclcpp"
 		"rcl"
 		"rclcpp"
-		"rclcpp_action"
+		# "rclcpp_action"
 		"std_msgs"
 		"std_srvs"
 		"sensor_msgs"
