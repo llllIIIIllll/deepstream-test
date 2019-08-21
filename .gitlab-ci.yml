@@ -68,7 +68,7 @@ V40:build:
     - source /opt/AF/ros2/ros2_xenial_aarch64/install/setup.bash
     - conda list
     - sudo ln -sf /home/nvidia/jetconda3/bin/python3.6 /usr/bin/python3
-    - colcon build --merge-install --symlink-install
+    - colcon build --merge-install
     - cd install && ls -aF | grep "[^/]$" |xargs rm -r
     - cd /builds/ROS/ROS2_Packages/ros2_videostream
     - cp -r /home/nvidia/ros2_ws/install .
