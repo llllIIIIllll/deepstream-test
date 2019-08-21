@@ -99,12 +99,12 @@ V40:archive:
   when: manual
   script:
     - git checkout tools/deb/*
-    - mkdir -p tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64
-    - cp -r ./install/ tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64
-    - sed -i "s/Version:/Version:\ `cat ./install/version`/g" tools/deb/ros2-videostream/DEBIAN/control
-    - sed -i "s/Architecture:/Architecture:\ arm64/g" tools/deb/ros2-videostream/DEBIAN/control
-    - rm -rf tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64/install/version
-    - dpkg-deb -b tools/deb/ros2-videostream ros2_videostream_xenial_aarch64-`cat ./install/version`.deb
+    - mkdir -p tools/deb/ros2-videostreamer/opt/AF/ros2/ros2_xenial_aarch64
+    - cp -r ./install/ tools/deb/ros2-videostreamer/opt/AF/ros2/ros2_xenial_aarch64
+    - sed -i "s/Version:/Version:\ `cat ./install/version`/g" tools/deb/ros2-videostreamer/DEBIAN/control
+    - sed -i "s/Architecture:/Architecture:\ arm64/g" tools/deb/ros2-videostreamer/DEBIAN/control
+    - rm -rf tools/deb/ros2-videostreamer/opt/AF/ros2/ros2_xenial_aarch64/install/version
+    - dpkg-deb -b tools/deb/ros2-videostreamer ros2_videostreamer_xenial_aarch64-`cat ./install/version`.deb
     - archive *.deb 
   only:
     refs:
