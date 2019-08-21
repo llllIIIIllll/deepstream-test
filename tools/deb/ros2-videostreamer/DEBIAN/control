@@ -1,4 +1,4 @@
-Package: ros2-videostream
+Package: ros2-videostreamer
 Version:
 Section: AutoFlight
 Priority: optional
@@ -7,4 +7,4 @@ Suggests:
 Architecture:
 Maintainer: AFAI Group
 Provides: AutoFlight
-Description: ros2-videostream
+Description: ros2-videostreamer
