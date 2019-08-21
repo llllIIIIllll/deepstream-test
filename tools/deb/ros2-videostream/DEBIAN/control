@@ -1,0 +1,10 @@
+Package: ros2-videostream
+Version:
+Section: AutoFlight
+Priority: optional
+Depends:
+Suggests:
+Architecture:
+Maintainer: AFAI Group
+Provides: AutoFlight
+Description: ros2-videostream

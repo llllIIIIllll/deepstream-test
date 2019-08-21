@@ -1,0 +1,161 @@
+stages:
+  - build
+  - test
+  - archive
+  - release
+variables:
+  DOCKER_IMAGE: dockerhub.autoflight.com:5000/tx2_native_docker:e2d6b6782d14b4a163e641ae1d631fd4ca6b6263
+
+##################################### template ###################################
+
+.example:build: &example_build
+  stage: build
+  tags: 
+    - docker
+  image: ${DOCKER_IMAGE}
+  except:
+    - tags
+  artifacts:
+    name: bin
+    paths: 
+      - ./*.out
+
+.example:test: &example_test
+  stage: test
+  tags: 
+    - docker
+  image: ${DOCKER_IMAGE}
+  except:
+    - tags
+
+.example:archive: &example_archive
+  stage: archive
+  tags: 
+    - deploy
+  except:
+    - tags
+  environment:
+    name: archive/${CI_COMMIT_REF_NAME}
+    url: http://nas.autoflight.com/deployment/archive/${CI_PROJECT_PATH}/${CI_COMMIT_REF_NAME}/${CI_COMMIT_SHA}
+    # url: ${CI_DEPLOY_URL}/archive/${CI_PROJECT_PATH}/${CI_COMMIT_REF_NAME}/${CI_COMMIT_SHA}
+
+.example:release: &example_release
+  stage: release
+  tags: 
+    - deploy
+  except:
+    - branches
+  script:
+    - release
+  environment:
+    name: release/${PRODUCT_NAME}
+    url: http://nas.autoflight.com/deployment/release/${CI_PROJECT_PATH}/${PRODUCT_NAME}/${CI_COMMIT_SHA}
+    # url: ${CI_DEPLOY_URL}/release/${CI_PROJECT_PATH}/${PRODUCT_NAME}/${CI_COMMIT_SHA}
+  
+
+##################################### V40 ###################################
+V40:build: 
+  <<: *example_build
+  script:
+    - mkdir -p /home/nvidia/ros2_ws/src
+    - cp -r ../ /home/nvidia/ros2_ws/src && cd /home/nvidia/ros2_ws/
+    - export ROS2_DEB_PATH=http://nas.autoflight.com/deployment/dev/ROS/ros2_repo/dev_xenial_aarch64/latest/ 
+    - wget -qO- $ROS2_DEB_PATH | grep "ros2_xenial_aarch64-" | cut -d '"' -f 2 |xargs -i echo $ROS2_DEB_PATH{} |xargs wget
+    - sudo dpkg -i ros2_xenial_aarch64-*.deb
+    - export ROS2_PERCEPTION_MSG=http://nas.autoflight.com/deployment/archive/ROS/ROS2_msgs/ros2_perception_msgs/V40/latest/
+    - wget -qO- $ROS2_PERCEPTION_MSG | grep "ros2_perception_msgs_xenial" | cut -d '"' -f 4 |xargs -i echo $ROS2_PERCEPTION_MSG{} |xargs wget
+    - sudo dpkg -i ros2_perception*.deb
+    - source /opt/AF/ros2/ros2_xenial_aarch64/install/setup.bash
+    - conda list
+    - sudo ln -sf /home/nvidia/jetconda3/bin/python3.6 /usr/bin/python3
+    - colcon build --merge-install --symlink-install
+    - cd install && ls -aF | grep "[^/]$" |xargs rm -r
+    - cd /builds/ROS/ROS2_Packages/ros2_videostream
+    - cp -r /home/nvidia/ros2_ws/install .
+    - echo `cat VERSION`.`git log \`git log -1 --pretty=format:"%H" --follow VERSION\`..HEAD --oneline | wc -l`-${CI_JOB_ID} > ./install/version
+  only:
+    refs:
+      - V40
+  artifacts:
+    name: bin
+    paths: 
+      - ./install/*
+
+V40:test: 
+  <<: *example_test
+  dependencies: 
+    - V40:build
+  script:
+    - pwd
+  only:
+    refs:
+      - V40
+
+V40:archive: 
+  <<: *example_archive
+  dependencies: 
+    - V40:build
+  when: manual
+  script:
+    - git checkout tools/deb/*
+    - mkdir -p tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64
+    - cp -r ./install/ tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64
+    - sed -i "s/Version:/Version:\ `cat ./install/version`/g" tools/deb/ros2-videostream/DEBIAN/control
+    - sed -i "s/Architecture:/Architecture:\ arm64/g" tools/deb/ros2-videostream/DEBIAN/control
+    - rm -rf tools/deb/ros2-videostream/opt/AF/ros2/ros2_xenial_aarch64/install/version
+    - dpkg-deb -b tools/deb/ros2-videostream ros2_videostream_xenial_aarch64-`cat ./install/version`.deb
+    - archive *.deb 
+  only:
+    refs:
+      - V40
+
+V40:release:
+  <<: *example_release
+  variables:
+    PRODUCT_NAME: V40
+  only:
+    refs:
+      - /^V40-release-[0-9]\d*$/
+
+##################################### V50 ###################################
+
+V50:build: 
+  <<: *example_build
+  script:
+    - version=v`cat VERSION`.`git log \`git log -1 --pretty=format:"%H" --follow VERSION\`..HEAD --oneline | wc -l`-${CI_JOB_ID}
+    - g++ main.cpp -o HelloShanghai-${CI_COMMIT_REF_NAME}-${version}.out -DTARGET=${CI_COMMIT_REF_NAME}
+  only:
+    refs:
+      - V50
+  artifacts:
+    name: bin
+    paths: 
+      - ./*.out
+
+V50:test: 
+  <<: *example_test
+  dependencies: 
+    - V50:build
+  script:
+    - ./HelloShanghai*
+  only:
+    refs:
+      - V50
+
+V50:archive: 
+  <<: *example_archive
+  dependencies: 
+    - V50:build
+  script:
+    - archive HelloShanghai*
+  only:
+    refs:
+      - V50
+
+V50:release:
+  <<: *example_release
+  variables:
+    PRODUCT_NAME: V50
+  only:
+    refs:
+      - /^V50-release-[0-9]\d*$/
