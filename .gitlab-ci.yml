@@ -57,6 +57,7 @@ variables:
 V40:build: 
   <<: *example_build
   script:
+    - echo ${CI_PROJECT_DIR}
     - mkdir -p /home/nvidia/ros2_ws/src
     - cp -r ../ /home/nvidia/ros2_ws/src && cd /home/nvidia/ros2_ws/
     - export ROS2_DEB_PATH=http://nas.autoflight.com/deployment/dev/ROS/ros2_repo/dev_xenial_aarch64/latest/ 
@@ -70,7 +71,7 @@ V40:build:
     - sudo ln -sf /home/nvidia/jetconda3/bin/python3.6 /usr/bin/python3
     - colcon build --merge-install
     - cd install && ls -aF | grep "[^/]$" |xargs rm -r
-    - cd /builds/ROS/ROS2_Packages/ros2_videostream
+    - cd ${CI_PROJECT_DIR}
     - cp -r /home/nvidia/ros2_ws/install .
     - echo `cat VERSION`.`git log \`git log -1 --pretty=format:"%H" --follow VERSION\`..HEAD --oneline | wc -l`-${CI_JOB_ID} > ./install/version
   only:
