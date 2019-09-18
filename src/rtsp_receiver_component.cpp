@@ -38,9 +38,9 @@ namespace ros2_videostreamer
         this->switch_on_ = this->param_auto_start_;
         this->turn_on_or_off_ = this->param_auto_start_;
 
-        auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
-        auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
-        // auto switch_qos_profile = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+        auto image_pub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(1)).reliable();
+        auto image_sub_qos_profile = rclcpp::QoS(rclcpp::KeepLast(1)).reliable();
+        // auto switch_qos_profile = rclcpp::QoS(rclcpp::KeepLast(1)).reliable();
 
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
             "/image_raw", image_pub_qos_profile);
@@ -171,7 +171,8 @@ namespace ros2_videostreamer
     
     void RtspReceiverNode::stop_stream()
     {
-        this->receiver_->stop();
+        if (this->receiver_->_running && !this->receiver_->_stopping)
+            this->receiver_->stop();
     }
 	
     void RtspReceiverNode::timer_check_alive_callback()
