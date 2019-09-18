@@ -45,15 +45,15 @@ namespace ros2_videostreamer
         image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
             "/image_raw", image_pub_qos_profile);
 
-        // tracker switch
-        auto switch_tracker_cb = std::bind(&RtspReceiverNode::switch_service_tracker_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
-        switch_service_tracker_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_tracker_name_, switch_tracker_cb);
+        // // tracker switch
+        // auto switch_tracker_cb = std::bind(&RtspReceiverNode::switch_service_tracker_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
+        // switch_service_tracker_ = this->create_service<std_srvs::srv::SetBool>(
+        //     param_switch_service_tracker_name_, switch_tracker_cb);
             
-        // detector switch
-        auto switch_detector_cb = std::bind(&RtspReceiverNode::switch_service_detector_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
-        switch_service_detector_ = this->create_service<std_srvs::srv::SetBool>(
-            param_switch_service_detector_name_, switch_detector_cb);
+        // // detector switch
+        // auto switch_detector_cb = std::bind(&RtspReceiverNode::switch_service_detector_callback, this, std::placeholders::_1, std::placeholders::_2,std::placeholders::_3);
+        // switch_service_detector_ = this->create_service<std_srvs::srv::SetBool>(
+        //     param_switch_service_detector_name_, switch_detector_cb);
             
         auto rtsp_cb = std::bind(&RtspReceiverNode::topic_rtsp_uri_callback_shared, this, std::placeholders::_1);
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
@@ -80,65 +80,65 @@ namespace ros2_videostreamer
         }
 	}
 
-    void RtspReceiverNode::switch_service_tracker_callback(const std::shared_ptr<rmw_request_id_t> request_header,
-        const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-        const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
-    {
-        // RCLCPP_INFO(this->get_logger(), "in switch CB");
-        static bool recount = true;
-        if (request->data)
-        {
-            recount = true;
-            RCLCPP_INFO(this->get_logger(), "switch on");
-        }
-        else
-        {
-            RCLCPP_INFO(this->get_logger(), "switch off");
-        }
+    // void RtspReceiverNode::switch_service_tracker_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+    //     const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    //     const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+    // {
+    //     // RCLCPP_INFO(this->get_logger(), "in switch CB");
+    //     static bool recount = true;
+    //     if (request->data)
+    //     {
+    //         recount = true;
+    //         RCLCPP_INFO(this->get_logger(), "switch on");
+    //     }
+    //     else
+    //     {
+    //         RCLCPP_INFO(this->get_logger(), "switch off");
+    //     }
         
-        // if no switch on message coming, turn off start time will remain at the first switch off message's time point
-        if(switch_on_ && !request->data && recount == true)
-        {
-            this->turn_off_count_start_ = std::chrono::system_clock::now();
-            recount = false;
-        }
+    //     // if no switch on message coming, turn off start time will remain at the first switch off message's time point
+    //     if(switch_on_ && !request->data && recount == true)
+    //     {
+    //         this->turn_off_count_start_ = std::chrono::system_clock::now();
+    //         recount = false;
+    //     }
         
-        this->tracker_turn_on_or_off_ = request->data;
+    //     this->tracker_turn_on_or_off_ = request->data;
         
-        RESERVE(request_header);
-        RESERVE(request);
-        RESERVE(response);
-    }
+    //     RESERVE(request_header);
+    //     RESERVE(request);
+    //     RESERVE(response);
+    // }
 
-        void RtspReceiverNode::switch_service_detector_callback(const std::shared_ptr<rmw_request_id_t> request_header,
-        const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-        const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
-    {
-        // RCLCPP_INFO(this->get_logger(), "in switch CB");
-        static bool recount = true;
-        if (request->data)
-        {
-            recount = true;
-            RCLCPP_INFO(this->get_logger(), "switch on");
-        }
-        else
-        {
-            RCLCPP_INFO(this->get_logger(), "switch off");
-        }
+    //     void RtspReceiverNode::switch_service_detector_callback(const std::shared_ptr<rmw_request_id_t> request_header,
+    //     const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    //     const std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+    // {
+    //     // RCLCPP_INFO(this->get_logger(), "in switch CB");
+    //     static bool recount = true;
+    //     if (request->data)
+    //     {
+    //         recount = true;
+    //         RCLCPP_INFO(this->get_logger(), "switch on");
+    //     }
+    //     else
+    //     {
+    //         RCLCPP_INFO(this->get_logger(), "switch off");
+    //     }
         
-        // if no switch on message coming, turn off start time will remain at the first switch off message's time point
-        if(switch_on_ && !request->data && recount == true)
-        {
-            this->turn_off_count_start_ = std::chrono::system_clock::now();
-            recount = false;
-        }
+    //     // if no switch on message coming, turn off start time will remain at the first switch off message's time point
+    //     if(switch_on_ && !request->data && recount == true)
+    //     {
+    //         this->turn_off_count_start_ = std::chrono::system_clock::now();
+    //         recount = false;
+    //     }
         
-        this->detector_turn_on_or_off_ = request->data;
+    //     this->detector_turn_on_or_off_ = request->data;
         
-        RESERVE(request_header);
-        RESERVE(request);
-        RESERVE(response);
-    }
+    //     RESERVE(request_header);
+    //     RESERVE(request);
+    //     RESERVE(response);
+    // }
 
     void RtspReceiverNode::topic_rtsp_uri_callback_shared(const std_msgs::msg::String::SharedPtr msg)
     {
@@ -177,11 +177,28 @@ namespace ros2_videostreamer
 	
     void RtspReceiverNode::timer_check_alive_callback()
     {
+        // this remain for action
         static int restart_count = 0;
         auto turn_off_count_end = std::chrono::system_clock::now();
+        
+        // this is for sub count
+        size_t sub_counts = this->count_subscribers("/image_raw");
+        std::cout << "sub counts: " << sub_counts << std::endl;
+        static int sub_counts_turn_off = 0; 
+        
+        if (sub_counts != 0)
+        {
+            this->turn_on_or_off_ = true;
+            sub_counts_turn_off = 0;
+        }
+        else
+        {
+            this->turn_on_or_off_ = false;
+            sub_counts_turn_off++;
+        }
 
         // only both off turn_on_or_off_ will be off
-        this->turn_on_or_off_ = this->tracker_turn_on_or_off_ || this->detector_turn_on_or_off_;
+        // this->turn_on_or_off_ = this->tracker_turn_on_or_off_ || this->detector_turn_on_or_off_;
         
         // check turn on or on, if turn off triggered, it will be off in 5 minutes;
         if (this->turn_on_or_off_)
@@ -190,6 +207,7 @@ namespace ros2_videostreamer
         }
         else if (std::chrono::duration_cast<std::chrono::duration<int>>
                     (turn_off_count_end - this->turn_off_count_start_).count() > 10
+                || (sub_counts_turn_off >= 3)
               )
         {
             this->switch_on_ = false;
