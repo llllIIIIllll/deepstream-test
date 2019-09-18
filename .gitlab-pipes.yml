@@ -1,5 +1,0 @@
-only:
-  - V40
-
-dependencies:
-  - ros2_perception_msgs/V40

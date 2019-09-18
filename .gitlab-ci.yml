@@ -77,8 +77,6 @@ V40:build:
   only:
     refs:
       - V40
-    - api
-    - web
   artifacts:
     name: bin
     paths: 
@@ -93,8 +91,6 @@ V40:test:
   only:
     refs:
       - V40
-    - api
-    - web
 
 V40:archive: 
   <<: *example_archive
@@ -113,8 +109,6 @@ V40:archive:
   only:
     refs:
       - V40
-    - api
-    - web
 
 V40:release:
   <<: *example_release
@@ -123,8 +117,6 @@ V40:release:
   only:
     refs:
       - /^V40-release-[0-9]\d*$/
-    - api
-    - web
 
 ##################################### V50 ###################################
 
