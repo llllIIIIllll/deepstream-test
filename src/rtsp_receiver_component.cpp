@@ -59,7 +59,9 @@ namespace ros2_videostreamer
         rtsp_uri_ = this->create_subscription<std_msgs::msg::String>(
             param_rtsp_uri_topic_, image_sub_qos_profile, rtsp_cb);
 
-        this->timer_check_alive_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&RtspReceiverNode::timer_check_alive_callback, this));
+        this->timer_check_alive_ = this->create_wall_timer(
+            std::chrono::seconds(this->timer_check_alive_callback_interval), 
+            std::bind(&RtspReceiverNode::timer_check_alive_callback, this));
         // this->timer_check_alive_->cancel();
 
 
@@ -207,10 +209,11 @@ namespace ros2_videostreamer
         }
         else if (std::chrono::duration_cast<std::chrono::duration<int>>
                     (turn_off_count_end - this->turn_off_count_start_).count() > 10
-                || (sub_counts_turn_off >= 3)
+                || (sub_counts_turn_off >= 5)
               )
         {
             this->switch_on_ = false;
+            sub_counts_turn_off = 0;
         }
         
         if (!this->switch_on_)

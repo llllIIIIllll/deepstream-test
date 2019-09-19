@@ -39,6 +39,7 @@ namespace ros2_videostreamer
             
         void timer_check_alive_callback();
         void timer_stream_controller_callback();
+        int timer_check_alive_callback_interval = 3;
         
         void start_stream();
         void stop_stream();
