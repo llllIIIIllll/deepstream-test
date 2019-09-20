@@ -25,6 +25,9 @@ namespace ros2_videostreamer
                             const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
                             const std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
+        void timer_check_alive_callback();
+        void wait_count_subscribers();
+
         UsbReceiver                             receiver_;
         std::string                             uri_;
         std::string                             param_switch_service_name_;
@@ -33,13 +36,16 @@ namespace ros2_videostreamer
         bool                                    switch_on_;        
         bool                                    param_image_display_;
         bool                                    param_verbose;
+        int                                     timer_check_alive_callback_interval = 3;
 
         std::vector<double>                     camera_info_message_;
 
         rclcpp::TimerBase::SharedPtr                                                timer_;
+        rclcpp::TimerBase::SharedPtr                                                timer_check_alive_;
         rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr                       image_pub_;
         rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr                  camera_info_pub_;
         rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr                          switch_service_;
+
     };
 
 }// namespace read_rtsp

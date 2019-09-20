@@ -57,6 +57,10 @@ namespace ros2_videostreamer
         // cancel immediately to prevent it running the first time.
         timer_->cancel();
 
+        this->timer_check_alive_ = this->create_wall_timer(
+            std::chrono::seconds(this->timer_check_alive_callback_interval), 
+            std::bind(&UsbReceiverNode::timer_check_alive_callback, this));
+            
 		this->receiver_.data.image_pub_ = image_pub_;
         this->uri_ = param_usb_uri_;
 		this->receiver_.setUri(this->uri_);
@@ -76,7 +80,29 @@ namespace ros2_videostreamer
 			this->receiver_.start();
         }
         
+        std::thread count_thread = std::thread(&UsbReceiverNode::wait_count_subscribers, this);
+        count_thread.detach();
 	}
+	
+    void UsbReceiverNode::wait_count_subscribers()
+    {
+        // rclcpp::Event::SharedPtr event = std::make_shared<rclcpp::Event>();
+        
+        while (true)
+        {
+            static int cur_sub_counts = count_subscribers("/ros2_videostreamer/image_raw");
+            auto event = this->get_graph_event();
+            this->wait_for_graph_change(event, std::chrono::nanoseconds(10000000000));
+            {
+                int tmp = count_subscribers("/ros2_videostreamer/image_raw");
+                if (tmp != cur_sub_counts)
+                {
+                    cur_sub_counts = tmp;
+                    std::cout << "sub counts change!" << std::endl;
+                }
+            }
+        }
+    }
 
     void UsbReceiverNode::switch_service_callback(const std::shared_ptr<rmw_request_id_t> request_header,
         const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
@@ -101,4 +127,14 @@ namespace ros2_videostreamer
 
 	UsbReceiverNode::~UsbReceiverNode()
 	{}
+
+    void UsbReceiverNode::timer_check_alive_callback()
+    {
+        auto event = this->get_graph_event();
+        this->wait_for_graph_change(event, std::chrono::nanoseconds(10000));
+        {
+            size_t sub_counts = this->count_subscribers("/ros2_videostreamer/image_raw");
+            std::cout << "sub counts: " << sub_counts << std::endl;
+        }
+    }
 };

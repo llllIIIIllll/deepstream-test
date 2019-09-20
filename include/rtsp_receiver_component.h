@@ -37,6 +37,7 @@ namespace ros2_videostreamer
         // rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleSwitch> goal_handle);
         // void execute(const std::shared_ptr<GoalHandleSwitch> goal_handle);
             
+        void wait_count_subscribers();
         void timer_check_alive_callback();
         void timer_stream_controller_callback();
         int timer_check_alive_callback_interval = 3;

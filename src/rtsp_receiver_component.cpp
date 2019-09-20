@@ -176,7 +176,26 @@ namespace ros2_videostreamer
         if (this->receiver_->_running && !this->receiver_->_stopping)
             this->receiver_->stop();
     }
-	
+
+    void RtspReceiverNode::wait_count_subscribers()
+    {
+        while (true)
+        {
+            static int cur_sub_counts = count_subscribers("/image_raw");
+            auto event = this->get_graph_event();
+            this->wait_for_graph_change(event, std::chrono::nanoseconds(10000000000));
+            {
+                int tmp = count_subscribers("/image_raw");
+                if (tmp != cur_sub_counts)
+                {
+                    cur_sub_counts = tmp;
+                    std::cout << "sub counts change!" << std::endl;
+                    this->timer_check_alive_callback();
+                }
+            }
+        }
+    }
+
     void RtspReceiverNode::timer_check_alive_callback()
     {
         // this remain for action
@@ -226,7 +245,7 @@ namespace ros2_videostreamer
         // switch is on, try to get stream
         this->stream_alive_ = this->receiver_->getStreamAlive();
         
-        if (!this->stream_alive_ && restart_count >= 10)
+        if (!this->stream_alive_ && restart_count >= 3)
         {
             this->stop_stream();
             restart_count = 0;
