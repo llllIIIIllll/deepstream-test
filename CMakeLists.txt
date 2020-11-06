@@ -31,7 +31,7 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(perception_msgs REQUIRED)
+#find_package(perception_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
@@ -43,6 +43,11 @@ include_directories(
 	include
 	${GSTREAMER_INCLUDE_DIRS}
 	${PROJECT_BINARY_DIR}
+)
+set(DS_LIB /opt/nvidia/deepstream/deepstream-4.0/lib)
+link_libraries(
+		/opt/nvidia/deepstream/deepstream-4.0/lib/libnvdsgst_meta.so
+		/opt/nvidia/deepstream/deepstream-4.0/lib/libnvds_meta.so
 )
 
 ###########################

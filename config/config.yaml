@@ -1,7 +1,7 @@
 ros2_videostreamer:
     rtsp_node:
         ros__parameters:
-            param_rtsp_uri: "rtsp://192.168.1.21:554/ch4"
+            param_rtsp_uri: "rtsp://admin:xijingkeji2020@192.168.1.64"
             display: true
             verbose: false
             auto_start: false

@@ -27,8 +27,16 @@ typedef struct _CustomData
 	GstElement *filter1;
 	GstElement *decodebin;
 
+GstElement *decoder;
+GstElement *nvvidconv;
+GstElement *nvosd;
+GstElement *transform;
+GstElement *streammux;
+
 	GstElement *capsfilter;
 	GstElement *sink;
+
+GstCaps *caps;
 
 	int _height;
 	int _width;
@@ -71,6 +79,7 @@ public:
 
 	CustomData data;
 	GstElement *pipeline;
+	cv::Mat* output_;
 
 	void start();
 	bool getStreamAlive();
