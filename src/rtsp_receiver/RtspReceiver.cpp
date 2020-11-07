@@ -24,6 +24,7 @@ static int eos = 0;
 #define MUXER_OUTPUT_HEIGHT 1080
 #define MUXER_BATCH_TIMEOUT_USEC 4000000
 
+
 // TODO: delete unnecessary component
 /// Convert an OpenCV matrix encoding type to a string format recognized by sensor_msgs::Image.
 /**
@@ -46,6 +47,32 @@ mat_type2encoding(int mat_type)
         default      : throw std::runtime_error("Unsupported encoding type");
   	}
 }
+
+
+/// Convert an OpenCV matrix (cv::Mat) to a ROS Image message.
+/**
+ * \param[in] frame The OpenCV matrix/image to convert.
+ * \param[in] frame_id ID for the ROS message.
+ * \param[out] Allocated shared pointer for the ROS Image message.
+ */
+void convert_frame_to_message(
+  const cv::Mat & frame, size_t frame_id, sensor_msgs::msg::Image::SharedPtr msg)
+{
+  	// copy cv information into ros message
+	msg->height          = frame.rows;
+	msg->width           = frame.cols;
+	msg->encoding        = mat_type2encoding(frame.type());
+	msg->step            = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
+	size_t size          = frame.step * frame.rows;
+
+	msg->data.resize(size);
+	memcpy(&msg->data[0], frame.data, size);
+	msg->header.frame_id = std::to_string(frame_id);
+  	std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
+    msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
+    msg->header.stamp.nanosec = now.count() % 1000000000;
+}
+
 
 
 static void appsink_eos(GstAppSink * appsink, gpointer data)
@@ -81,10 +108,32 @@ static GstFlowReturn new_buffer(GstAppSink *appsink, gpointer user_data)
         gst_buffer_map (buffer, &map, GST_MAP_READ);
 
 		cv::Mat t = cv::Mat(1080 , 1920,
-								CV_8UC1, (void *)map.data);
+								CV_8UC3, (void *)map.data);
 
-			cv::imshow("usb", t);
-			cv::waitKey(1);
+		CustomData * data = (CustomData*)user_data;
+		auto msg = std::make_shared<sensor_msgs::msg::Image>();
+
+		int secs = data->_timestamp / 1000;
+
+		// TODO: add frame_id
+		msg->header.stamp.sec = secs;
+		msg->header.stamp.nanosec = (data->_timestamp % 1000) * 1000000;
+		convert_frame_to_message(t, 10, msg);
+		// msg->encoding = "bgr8";
+		// msg->data = map.data;
+		// msg->step = 1920;
+		// msg->height = 1080;
+		// msg->width = 1920;
+
+		try 
+		{
+			data->_stream_alive = true;
+			data->image_pub_->publish(*msg);
+		} catch (std::exception & ex) {}
+
+
+			// cv::imshow("usb", t);
+			// cv::waitKey(1);
 
         gst_buffer_unmap(buffer, &map);
 
@@ -96,30 +145,6 @@ static GstFlowReturn new_buffer(GstAppSink *appsink, gpointer user_data)
     }
 
     return GST_FLOW_OK;
-}
-
-/// Convert an OpenCV matrix (cv::Mat) to a ROS Image message.
-/**
- * \param[in] frame The OpenCV matrix/image to convert.
- * \param[in] frame_id ID for the ROS message.
- * \param[out] Allocated shared pointer for the ROS Image message.
- */
-void convert_frame_to_message(
-  const cv::Mat & frame, size_t frame_id, sensor_msgs::msg::Image::SharedPtr msg)
-{
-  	// copy cv information into ros message
-	msg->height          = frame.rows;
-	msg->width           = frame.cols;
-	msg->encoding        = mat_type2encoding(frame.type());
-	msg->step            = static_cast<sensor_msgs::msg::Image::_step_type>(frame.step);
-	size_t size          = frame.step * frame.rows;
-
-	msg->data.resize(size);
-	memcpy(&msg->data[0], frame.data, size);
-	msg->header.frame_id = std::to_string(frame_id);
-  	std::chrono::nanoseconds now = std::chrono::high_resolution_clock::now().time_since_epoch();
-    msg->header.stamp.sec = static_cast<builtin_interfaces::msg::Time::_sec_type>(now.count() / 1000000000);
-    msg->header.stamp.nanosec = now.count() % 1000000000;
 }
 
 static void on_pad_added (GstElement *element, GstPad *pad, gpointer data)
@@ -263,7 +288,7 @@ void RtspReceiver::start()
     // << "appsink name=mysink ";
 
     launch_string = "rtspsrc location=rtsp://admin:xijingkeji2020@192.168.1.64 latency=200 ! rtph264depay ! h264parse ! omxh264dec \
-	! nvvidconv ! video/x-raw, width=(int)1920, height=(int)1080, format=(string)GRAY8 ! videoconvert ! appsink name=mysink ";
+	! nvvidconv ! video/x-raw, width=(int)1920, height=(int)1080, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink name=mysink ";
 					// !  nvvidconv !  video/x-raw, width=(int)1920, height=(int)1080, format=(string)BGRx \
 					// !  videoconvert 
 	// launch_string = "rtspsrc location=rtsp://admin:xijingkeji2020@192.168.1.64:554 latency=200 drop-on-latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder ! nvvideoconvert ! nvdsosd ! nvegltransform ! nveglglessink";
@@ -275,7 +300,7 @@ void RtspReceiver::start()
     GstAppSinkCallbacks callbacks = {appsink_eos, NULL, new_buffer};
 
     data.sink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
-    gst_app_sink_set_callbacks (GST_APP_SINK(data.sink), &callbacks, NULL, NULL);
+    gst_app_sink_set_callbacks (GST_APP_SINK(data.sink), &callbacks, (gpointer)(&data), NULL);
 
 	// g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
 
