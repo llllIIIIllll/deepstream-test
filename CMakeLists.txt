@@ -35,6 +35,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+#find_package(GSTREAMER REQUIRED gstreamer-1.0)
 
 #################
 # include files #
@@ -43,6 +44,7 @@ include_directories(
 	include
 	${GSTREAMER_INCLUDE_DIRS}
 	${PROJECT_BINARY_DIR}
+	/usr/include/gstreamer-1.0/
 )
 set(DS_LIB /opt/nvidia/deepstream/deepstream-4.0/lib)
 link_libraries(
@@ -64,6 +66,7 @@ function(custome_executable subfolder target addition)
 		${GSTREAMER_LIBRARIES} 
 		${OpenCV_LIBS}
 		pthread
+		gstapp-1.0
 	)
 	ament_target_dependencies(${target}
 		"rclcpp"

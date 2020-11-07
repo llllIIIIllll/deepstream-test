@@ -29,6 +29,8 @@ typedef struct _CustomData
 
 GstElement *decoder;
 GstElement *nvvidconv;
+GstElement *vidconv;
+
 GstElement *nvosd;
 GstElement *transform;
 GstElement *streammux;
@@ -68,7 +70,7 @@ GstCaps *caps;
 
 } CustomData;
 
-void new_sample(GstElement *sink, CustomData *data);
+// void new_sample(GstAppSink *sink, CustomData *data);
 void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data);
 
 class RtspReceiver : public Receiver 
@@ -78,7 +80,9 @@ public:
 	~RtspReceiver();
 
 	CustomData data;
-	GstElement *pipeline;
+	// GstElement *pipeline;
+GstPipeline *pipeline = nullptr;
+
 	cv::Mat* output_;
 
 	void start();

@@ -1,6 +1,24 @@
 #include "host_cpu.h"
 #include "rtsp_receiver/RtspReceiver.hpp"
 #include <chrono>
+#include <cstdlib>
+#include <gst/gst.h>
+#include <gst/gstinfo.h>
+#include <gst/app/gstappsink.h>
+#include <glib-unix.h>
+#include <dlfcn.h>
+
+#include <iostream>
+#include <sstream>
+#include <thread>
+
+
+
+
+static int frame_count = 0;
+static int sleep_count = 0;
+static int eos = 0;
+
 
 #define MUXER_OUTPUT_WIDTH 1920
 #define MUXER_OUTPUT_HEIGHT 1080
@@ -12,6 +30,10 @@
  * \param[in] mat_type The OpenCV encoding type.
  * \return A string representing the encoding type.
  */
+
+ static std::string launch_string;
+ static std::ostringstream launch_stream;
+
 std::string
 mat_type2encoding(int mat_type)
 {
@@ -23,6 +45,57 @@ mat_type2encoding(int mat_type)
         case CV_8UC4 : return "rgba8";
         default      : throw std::runtime_error("Unsupported encoding type");
   	}
+}
+
+
+static void appsink_eos(GstAppSink * appsink, gpointer data)
+{
+    printf("app sink receive eos\n");
+    eos = 1;
+//    g_main_loop_quit (hpipe->loop);
+}
+
+
+/* The appsink has received a buffer */
+static GstFlowReturn new_buffer(GstAppSink *appsink, gpointer user_data)
+{
+
+    GstSample *sample = NULL;
+
+    g_signal_emit_by_name (appsink, "pull-sample", &sample,NULL);
+
+    if (sample)
+    {
+        GstBuffer *buffer = NULL;
+        GstCaps   *caps   = NULL;
+        GstMapInfo map    = {0};
+        int dmabuf_fd = 0;
+
+        caps = gst_sample_get_caps (sample);
+        if (!caps)
+        {
+            printf("could not get snapshot format\n");
+        }
+        gst_caps_get_structure (caps, 0);
+        buffer = gst_sample_get_buffer (sample);
+        gst_buffer_map (buffer, &map, GST_MAP_READ);
+
+		cv::Mat t = cv::Mat(1080 , 1920,
+								CV_8UC1, (void *)map.data);
+
+			cv::imshow("usb", t);
+			cv::waitKey(1);
+
+        gst_buffer_unmap(buffer, &map);
+
+        gst_sample_unref (sample);
+    }
+    else
+    {
+        g_print ("could not make snapshot\n");
+    }
+
+    return GST_FLOW_OK;
 }
 
 /// Convert an OpenCV matrix (cv::Mat) to a ROS Image message.
@@ -179,120 +252,149 @@ void RtspReceiver::start()
 	{
 
 		// TODO: make code consice
-		_pipeline = gst_pipeline_new("Rtsp pipeline");
+		// _pipeline = gst_pipeline_new("Rtsp pipeline");
 
-		data.source    = gst_element_factory_make( "rtspsrc"     , "source");
-		data.rtppay    = gst_element_factory_make( "rtph264depay", "depayl");
-		data.parse     = gst_element_factory_make( "h264parse"   , "parse" );
-		data.identity  = gst_element_factory_make( "identity"    , "identity" );
-		data.decoder   = gst_element_factory_make("nvv4l2decoder", "nvv4l2-decoder");
-  		data.nvvidconv =
-      		gst_element_factory_make("nvvideoconvert", "nvvideo-converter");
-  		data.streammux =
-      		gst_element_factory_make("nvstreammux", "stream-muxer");
-  		data.nvosd =
-      		gst_element_factory_make("nvdsosd", "nv-onscreendisplay");
-  		data.transform =
-      		gst_element_factory_make("nvegltransform", "nvegl-transform");
-		// g_object_set(data.capsfilter    , "caps"        , data.caps        , NULL);
+//    << "nvcamerasrc ! "
+//    << "video/x-raw(memory:NVMM), width="<< w <<", height="<< h <<", framerate=30/1 ! " 
+    // launch_stream
+    // << "filesrc location=Bourne_Trailer.mp4 ! decodebin ! "
+    // << "nvvidconv ! "
+    // << "video/x-raw(memory:NVMM), format=I420, width="<< w <<", height="<< h <<" ! "
+    // << "appsink name=mysink ";
 
-		//data.filter1   = gst_element_factory_make( "capsfilter"  , "filter");
+    launch_string = "rtspsrc location=rtsp://admin:xijingkeji2020@192.168.1.64 latency=200 ! rtph264depay ! h264parse ! omxh264dec \
+	! nvvidconv ! video/x-raw, width=(int)1920, height=(int)1080, format=(string)GRAY8 ! videoconvert ! appsink name=mysink ";
+					// !  nvvidconv !  video/x-raw, width=(int)1920, height=(int)1080, format=(string)BGRx \
+					// !  videoconvert 
+	// launch_string = "rtspsrc location=rtsp://admin:xijingkeji2020@192.168.1.64:554 latency=200 drop-on-latency=0 ! rtph264depay ! h264parse ! nvv4l2decoder ! nvvideoconvert ! nvdsosd ! nvegltransform ! nveglglessink";
+    g_print("Using launch string: %s\n", launch_string.c_str());
+
+    GError *error = nullptr;
+    pipeline  = (GstPipeline*) gst_parse_launch(launch_string.c_str(), &error);
+
+    GstAppSinkCallbacks callbacks = {appsink_eos, NULL, new_buffer};
+
+    data.sink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
+    gst_app_sink_set_callbacks (GST_APP_SINK(data.sink), &callbacks, NULL, NULL);
+
+	// g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
+
+
+	// data.caps = gst_caps_new_simple(
+	// 	"video/x-raw",
+	// 	"format"     , G_TYPE_STRING    , "format=(string)BGRx",
+	// 	NULL);
+
+	// 	data.source    = gst_element_factory_make( "rtspsrc"     , "source");
+	// 	data.rtppay    = gst_element_factory_make( "rtph264depay", "depayl");
+	// 	data.parse     = gst_element_factory_make( "h264parse"   , "parse" );
+	// 	data.identity  = gst_element_factory_make( "identity"    , "identity" );
+	// 	data.decoder   = gst_element_factory_make("nvv4l2decoder", "nvv4l2-decoder");
+  	// 	data.nvvidconv =
+    //   		gst_element_factory_make("nvvideoconvert", "nvvideo-converter");
+  	// 	data.vidconv =
+    //   		gst_element_factory_make("videoconvert", "video-converter");
+  				
+	// 	  data.streammux =
+    //   		gst_element_factory_make("nvstreammux", "stream-muxer");
+  	// 	data.nvosd =
+    //   		gst_element_factory_make("nvdsosd", "nv-onscreendisplay");
+  	// 	data.transform =
+    //   		gst_element_factory_make("nvegltransform", "nvegl-transform");
+
+	// 	data.capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
+
+	// 	g_object_set(data.capsfilter    , "caps"        , data.caps        , NULL);
 		
-		// if (data.host_cpu_ == "aarch64")
-		// {
-		// 	data.decodebin = gst_element_factory_make( "omxh264dec"  , "decode");
-		// }
-		// else
-		// {
-		// 	data.decodebin = gst_element_factory_make( "avdec_h264"  , "decode");
-		// }
+	// 	// if (data.host_cpu_ == "aarch64")
+	// 	// {
+	// 		// data.decoder = gst_element_factory_make( "omxh264dec"  , "decode");
+	// 	// }
+	// 	// else
+	// 	// {
+	// 	// 	data.decodebin = gst_element_factory_make( "avdec_h264"  , "decode");
+	// 	// }
 
-		data.sink      = gst_element_factory_make( "nveglglessink"     , "sink"  );
+	// 	// data.sink      = gst_element_factory_make( "nveglglessink"     , "sink"  );
+	// 	data.sink      = gst_element_factory_make( "appsink"     , "sink"  );
 
 		// set up link
-		g_object_set (G_OBJECT (data.source)   , "latency"    , 200        , NULL);
-		// g_object_set (G_OBJECT (data.decoder), "max-threads", 6           , "format" , "RGBA" ,NULL);
-		g_object_set (G_OBJECT (data.sink)     , "sync"       , FALSE       ,"drop", TRUE, NULL);
-		g_object_set(GST_OBJECT(data.source)   , "location"   , _uri.c_str(), NULL);
+		// g_object_set (G_OBJECT (data.source)   , "latency"    , 200        , NULL);
+		// // g_object_set (G_OBJECT (data.decoder), "max-threads", 6           , "format" , "RGBA" ,NULL);
+		// g_object_set (G_OBJECT (data.sink)     , "sync"       , TRUE       ,"drop", TRUE, NULL);
+		// g_object_set(GST_OBJECT(data.source)   , "location"   , _uri.c_str(), NULL);
 
-		g_object_set(G_OBJECT(data.streammux), "width", MUXER_OUTPUT_WIDTH, "height",
-					MUXER_OUTPUT_HEIGHT, "batch-size", 1, "batched-push-timeout",
-					MUXER_BATCH_TIMEOUT_USEC, NULL);
-		// connect appsink to caps
-		//GstCaps* filtercaps = gst_caps_from_string("application/x-rtp");
-		//g_object_set (G_OBJECT (data.filter1), "caps", filtercaps, NULL);
-		//gst_caps_unref(filtercaps);
-  		g_object_set (data.sink, "emit-signals", TRUE, NULL);
+		// g_object_set(G_OBJECT(data.streammux), "width", MUXER_OUTPUT_WIDTH, "height",
+		// 			MUXER_OUTPUT_HEIGHT, "batch-size", 1, "batched-push-timeout",
+		// 			MUXER_BATCH_TIMEOUT_USEC, NULL);
+		// // connect appsink to caps
+		// //GstCaps* filtercaps = gst_caps_from_string("application/x-rtp");
+		// //g_object_set (G_OBJECT (data.filter1), "caps", filtercaps, NULL);
+		// //gst_caps_unref(filtercaps);
+  		// g_object_set (data.sink, "emit-signals", TRUE, NULL);
 
-		gst_bin_add_many (GST_BIN (_pipeline), data.source
-											//  , data.identity
-		                                     , data.rtppay
-		                                     , data.parse
-											 , data.decoder
-											 , data.streammux
-											 , data.nvvidconv
-											 , data.nvosd
-											 , data.transform
-											 , data.sink
-											 , NULL);
+		// gst_bin_add_many (GST_BIN (_pipeline), data.source
+		// 									//  , data.identity
+		//                                      , data.rtppay
+		//                                      , data.parse
+		// 									 , data.decoder
+		// 									 , data.nvvidconv
+		// 									 ,data.capsfilter
+		// 									, data.vidconv
+		// 									//  , data.capsfilter
+		// 									//  , data.streammux
+		// 									//  , data.nvvidconv
+		// 									//  , data.nvosd
+		// 									//  , data.transform
+		// 									 , data.sink
+		// 									 , NULL);
 
-		if(!gst_element_link_many(			data.rtppay
-											, data.parse
-											, data.decoder
-											,NULL))
-		{
-		    printf("\nFailed to link parse to sink");
-		}
-		if(!gst_element_link_many(			 
-											 data.streammux
-											, data.nvvidconv
-											, data.nvosd
-											, data.transform
-											, data.sink
-											,NULL))
-		{
-		    printf("\nFailed to link parse to sink");
-		}
+
+
+
+		// if(!gst_element_link_many(			  data.rtppay
+		// 									, data.parse
+		// 									, data.decoder
+		// 									//  , data.nvvidconv
+
+		// 									,NULL))
+		// {
+		//     printf("\nFailed to link parse to sink");
+		// }
+		// if(!gst_element_link_many(			 data.decoder
+		// 											 , data.nvvidconv
+		// 											 , data.capsfilter
+		// 											 , data.vidconv
+
+		// 									//  data.streammux
+		// 									// , data.nvvidconv
+		// 									// , data.nvosd
+		// 									// , data.transform
+		// 									// , data.capsfilter
+		// 									, data.sink
+		// 									,NULL))
+		// {
+		//     printf("\nFailed to link parse to sink");
+		// }
 		
-		// listen for newly created pads
-		g_signal_connect(data.source, "pad-added" , G_CALLBACK(cb_new_rtspsrc_pad), data.rtppay);
-		// g_signal_connect(data.identity, "handoff" , G_CALLBACK(handoff), &data);
+		// // listen for newly created pads
+		// g_signal_connect(data.source, "pad-added" , G_CALLBACK(cb_new_rtspsrc_pad), data.rtppay);
+		// // g_signal_connect(data.identity, "handoff" , G_CALLBACK(handoff), &data);
 		// g_signal_connect(data.rtppay, "pad-added" , G_CALLBACK(on_pad_added), data.parse);
-		 g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
-  		// g_signal_connect(data.sink, "new-sample", G_CALLBACK(cb_new_sample_sink),
-                //    output_);
-
-
- GstPad *sinkpad, *srcpad;
- gchar pad_name_sink[16] = "sink_0";
- gchar pad_name_src[16] = "src";
-
-sinkpad = gst_element_get_request_pad(data.streammux, pad_name_sink);
- if (!sinkpad) {
-   g_printerr("Streammux request sink pad failed. Exiting.\n");
- }
- srcpad = gst_element_get_static_pad(data.decoder, pad_name_src);
- if (!srcpad) {
-   g_printerr("Decoder request src pad failed. Exiting.\n");
- }
-
- if (gst_pad_link(srcpad, sinkpad) != GST_PAD_LINK_OK) {
-   g_printerr("Failed to link decoder_ to stream muxer. Exiting.\n");
- }
- // gst_pad_link
- gst_object_unref(sinkpad);
- gst_object_unref(srcpad);
+		//  g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
 
 
 		// start playing
-		ret = gst_element_set_state(_pipeline, GST_STATE_PLAYING);
+		ret = gst_element_set_state((GstElement*)pipeline, GST_STATE_PLAYING);
+
+
 		if (ret == GST_STATE_CHANGE_FAILURE)
 		{
 			g_printerr("Unable to set the pipeline to the playing state.\n");
-			gst_object_unref(_pipeline);
+			gst_object_unref(pipeline);
 		}
 
-		if ((bus = gst_pipeline_get_bus(GST_PIPELINE(_pipeline))) != NULL)
+		if ((bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline))) != NULL)
 		{
 			gst_bus_enable_sync_message_emission(bus);
 			g_signal_connect(bus, "sync-message", G_CALLBACK(_onBusMessage), this);
@@ -300,9 +402,9 @@ sinkpad = gst_element_get_request_pad(data.streammux, pad_name_sink);
 			bus = NULL;
 		}
 
-		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(_pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
+		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
 								  "pipeline-paused");
-		running = gst_element_set_state(_pipeline, GST_STATE_PLAYING) !=
+		running = gst_element_set_state((GstElement*)pipeline, GST_STATE_PLAYING) !=
 				  GST_STATE_CHANGE_FAILURE;
 	} while (0);
 
@@ -312,10 +414,10 @@ sinkpad = gst_element_get_request_pad(data.streammux, pad_name_sink);
 
 		// In newer versions, the pipeline will clean up all references that are
 		// added to it
-		if (_pipeline != NULL)
+		if (pipeline != NULL)
 		{
-			gst_object_unref(_pipeline);
-			_pipeline = NULL;
+			gst_object_unref(pipeline);
+			pipeline = NULL;
 		}
 
 		auto unref = [&](GstElement *a) {
@@ -340,7 +442,7 @@ sinkpad = gst_element_get_request_pad(data.streammux, pad_name_sink);
 	}
 	else
 	{
-		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(_pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
+		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
 								  "pipeline-playing");
 		_running = true;
 		g_print("Running\n");
@@ -379,7 +481,7 @@ void handoff(GstElement *sink, GstBuffer* buffer,CustomData *data)
 }
 
 /* The appsink has received a buffer */
-void new_sample(GstElement *sink, CustomData *data)
+void new_sample(GstAppSink *sink, CustomData *data)
 {
 	GstSample   *sample;
 	GstBuffer   *buffer;
@@ -387,89 +489,89 @@ void new_sample(GstElement *sink, CustomData *data)
     gboolean    res;
 	/* Retrieve the buffer */
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
-	//auto start = std::chrono::system_clock::now();
-    	  g_print ("@@@@@\n");
+	auto start = std::chrono::system_clock::now();
+    g_print ("@@@@@\n");
 
-	if (sample)
-	{
-		// get picture format
-		GstCaps *caps;
-		GstStructure *s;
-    	caps = gst_sample_get_caps (sample);
-    	if (!caps) 
-		{
-    	  g_print ("could not get snapshot format\n");
-    	  exit (-1);
-    	}
-    	s = gst_caps_get_structure (caps, 0);
-    	/* we need to get the final caps on the buffer to get the size */
-    	res = gst_structure_get_int (s, "width", &data->_width);
-    	res |= gst_structure_get_int (s, "height", &data->_height);
+	// if (sample)
+	// {
+	// 	// get picture format
+	// 	GstCaps *caps;
+	// 	GstStructure *s;
+    // 	caps = gst_sample_get_caps (sample);
+    // 	if (!caps) 
+	// 	{
+    // 	  g_print ("could not get snapshot format\n");
+    // 	  exit (-1);
+    // 	}
+    // 	s = gst_caps_get_structure (caps, 0);
+    // 	/* we need to get the final caps on the buffer to get the size */
+    // 	res = gst_structure_get_int (s, "width", &data->_width);
+    // 	res |= gst_structure_get_int (s, "height", &data->_height);
 
-		if (!res) 
-		{
-			g_print ("could not get snapshot dimension\n");
-			exit (-1);
-		}
+	// 	if (!res) 
+	// 	{
+	// 		g_print ("could not get snapshot dimension\n");
+	// 		exit (-1);
+	// 	}
 
-		// get buffer
-		buffer = gst_sample_get_buffer(sample);
-		gst_buffer_map(buffer, &map, GST_MAP_READ);
+	// 	// get buffer
+	// 	buffer = gst_sample_get_buffer(sample);
+	// 	gst_buffer_map(buffer, &map, GST_MAP_READ);
 
-		cv::Mat mRGB;
-		auto msg = std::make_shared<sensor_msgs::msg::Image>();
+	// 	cv::Mat mRGB;
+	// 	auto msg = std::make_shared<sensor_msgs::msg::Image>();
 
-		bool use_rgb = true;
-		if (use_rgb)
-		{
-			cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
-								CV_8UC1, (void *)map.data);
+	// 	bool use_rgb = true;
+	// 	if (use_rgb)
+	// 	{
+	// 		cv::Mat t = cv::Mat(data->_height + data->_height / 2 , data->_width,
+	// 							CV_8UC1, (void *)map.data);
 
-			if (data->host_cpu_ == "aarch64")
-			{
-				cvtColor(t, mRGB, CV_YUV2BGR_NV12);
-			}
-			else
-			{
-				cvtColor(t, mRGB, CV_YUV420p2RGB);
-			}
-			convert_frame_to_message(mRGB, 10, msg);
-		}
-		else
-		{
+	// 		if (data->host_cpu_ == "aarch64")
+	// 		{
+	// 			cvtColor(t, mRGB, CV_YUV2BGR_NV12);
+	// 		}
+	// 		else
+	// 		{
+	// 			cvtColor(t, mRGB, CV_YUV420p2RGB);
+	// 		}
+	// 		convert_frame_to_message(mRGB, 10, msg);
+	// 	}
+	// 	else
+	// 	{
 
-			cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
-								CV_8UC1, (void *)map.data);
-			convert_frame_to_message(t, 10, msg);
-			// cv::imshow("usb", t);
-		}
-		if (use_rgb && data->_image_display)
-		{
-			// cv::imshow("usb", mRGB);
-			// cv::waitKey(1);
-		}
+	// 		cv::Mat t = cv::Mat(data->_height /*+ data->_height / 2*/ , data->_width,
+	// 							CV_8UC1, (void *)map.data);
+	// 		convert_frame_to_message(t, 10, msg);
+	// 		// cv::imshow("usb", t);
+	// 	}
+	// 	if (use_rgb && data->_image_display)
+	// 	{
+	// 		cv::imshow("usb", mRGB);
+	// 		cv::waitKey(1);
+	// 	}
 
-		int secs = data->_timestamp / 1000;
+	// 	int secs = data->_timestamp / 1000;
 
-		// TODO: add frame_id
-		msg->header.stamp.sec = secs;
-		msg->header.stamp.nanosec = (data->_timestamp % 1000) * 1000000;
+	// 	// TODO: add frame_id
+	// 	msg->header.stamp.sec = secs;
+	// 	msg->header.stamp.nanosec = (data->_timestamp % 1000) * 1000000;
 		
-		if (data->_verbose)
-		{
-			std::cout << secs << " -- " << data->_timestamp << std::endl;
-		}
+	// 	if (data->_verbose)
+	// 	{
+	// 		std::cout << secs << " -- " << data->_timestamp << std::endl;
+	// 	}
 		
-		try 
-		{
-			data->_stream_alive = true;
-			data->image_pub_->publish(*msg);
-		} catch (std::exception & ex) {}
+	// 	try 
+	// 	{
+	// 		data->_stream_alive = true;
+	// 		data->image_pub_->publish(*msg);
+	// 	} catch (std::exception & ex) {}
 
-		gst_buffer_unmap(buffer, &map);
-		gst_sample_unref(sample);
-	}
-	//auto end = std::chrono::system_clock::now();
-	//std::chrono::duration<double> diff = end - start;
-	//std::cout << "Time:  " << GST_BUFFER_PTS(buffer) << std::endl;
+	// 	gst_buffer_unmap(buffer, &map);
+	// 	gst_sample_unref(sample);
+	// }
+	auto end = std::chrono::system_clock::now();
+	// std::chrono::duration<std::chrono::milliseconds> diff = end - start;
+	// std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
 }
