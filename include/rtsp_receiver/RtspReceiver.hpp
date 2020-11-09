@@ -81,7 +81,7 @@ public:
 
 	CustomData data;
 	// GstElement *pipeline;
-GstPipeline *pipeline = nullptr;
+// GstPipeline *pipeline = nullptr;
 
 	cv::Mat* output_;
 

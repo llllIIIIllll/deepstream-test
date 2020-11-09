@@ -295,11 +295,11 @@ void RtspReceiver::start()
     g_print("Using launch string: %s\n", launch_string.c_str());
 
     GError *error = nullptr;
-    pipeline  = (GstPipeline*) gst_parse_launch(launch_string.c_str(), &error);
+    _pipeline  = (GstElement*) gst_parse_launch(launch_string.c_str(), &error);
 
     GstAppSinkCallbacks callbacks = {appsink_eos, NULL, new_buffer};
 
-    data.sink = gst_bin_get_by_name(GST_BIN(pipeline), "mysink");
+    data.sink = gst_bin_get_by_name(GST_BIN(_pipeline), "mysink");
     gst_app_sink_set_callbacks (GST_APP_SINK(data.sink), &callbacks, (gpointer)(&data), NULL);
 
 	// g_signal_connect(data.sink  , "new-sample", G_CALLBACK(new_sample), &data);
@@ -410,16 +410,16 @@ void RtspReceiver::start()
 
 
 		// start playing
-		ret = gst_element_set_state((GstElement*)pipeline, GST_STATE_PLAYING);
+		ret = gst_element_set_state((GstElement*)_pipeline, GST_STATE_PLAYING);
 
 
 		if (ret == GST_STATE_CHANGE_FAILURE)
 		{
 			g_printerr("Unable to set the pipeline to the playing state.\n");
-			gst_object_unref(pipeline);
+			gst_object_unref(_pipeline);
 		}
 
-		if ((bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline))) != NULL)
+		if ((bus = gst_pipeline_get_bus(GST_PIPELINE(_pipeline))) != NULL)
 		{
 			gst_bus_enable_sync_message_emission(bus);
 			g_signal_connect(bus, "sync-message", G_CALLBACK(_onBusMessage), this);
@@ -427,9 +427,9 @@ void RtspReceiver::start()
 			bus = NULL;
 		}
 
-		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
+		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(_pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
 								  "pipeline-paused");
-		running = gst_element_set_state((GstElement*)pipeline, GST_STATE_PLAYING) !=
+		running = gst_element_set_state((GstElement*)_pipeline, GST_STATE_PLAYING) !=
 				  GST_STATE_CHANGE_FAILURE;
 	} while (0);
 
@@ -439,10 +439,10 @@ void RtspReceiver::start()
 
 		// In newer versions, the pipeline will clean up all references that are
 		// added to it
-		if (pipeline != NULL)
+		if (_pipeline != NULL)
 		{
-			gst_object_unref(pipeline);
-			pipeline = NULL;
+			gst_object_unref(_pipeline);
+			_pipeline = NULL;
 		}
 
 		auto unref = [&](GstElement *a) {
@@ -467,7 +467,7 @@ void RtspReceiver::start()
 	}
 	else
 	{
-		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
+		GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(_pipeline), GST_DEBUG_GRAPH_SHOW_ALL,
 								  "pipeline-playing");
 		_running = true;
 		g_print("Running\n");
